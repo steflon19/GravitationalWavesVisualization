@@ -1,4 +1,7 @@
 /build
+/debug
+/src/debug
+/.vs
 # Prerequisites
 *.d
 
