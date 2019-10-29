@@ -399,9 +399,6 @@ public:
         glBindVertexArray(0);
 
 
-
-        string resourceDir = "../resources" ;
-        string shadersDirectory = "../resources/shaders";
         // Initialize mesh.
         shape_earth_ = make_shared<Shape>();
         shape_earth_->loadMesh(resourceDir + "/sphere2.obj");
