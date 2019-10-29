@@ -17,10 +17,19 @@ CPE/CSC 471 Lab base code Wood/Dunn/Eckhardt
 // value_ptr for glm
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <bitset>
 using namespace std;
 using namespace glm;
+#if defined(__APPLE__)
+#define PLATFORM_NAME "apple"
+#elif defined(_WIN32)
+#define PLATFORM_NAME "windows"
+#elif defined(__linux__)
+#define PLATFORM_NAME "linux" 
+#endif
+
 #ifndef BYTE
-typedef bitset<8> BYTE;
+#define BYTE bitset<8>
 #endif
 #define MSAAFACT 1
 
@@ -100,10 +109,10 @@ private:
     
     Camera cam_;
 
+	string resourceDir = "";
+	string shaderDir = "";
+
 public:
-    
-    const std::string resourceDir = "../../resources";
-    const std::string shaderDir = "../../resources/shaders";
     WindowManager * windowManager = nullptr;
 
     // Our shader program
@@ -113,7 +122,7 @@ public:
     std::shared_ptr<Program> prog_earth;
     std::shared_ptr<Program> prog_moon;
     std::shared_ptr<Program> prog_skybox;
-    std::shared_ptr<Program> prog_gw_source, postprocprog;
+    std::shared_ptr<Program> prog_gw_source, prog_post_proc;
     
     std::shared_ptr<Program> prog_box_DEBUG;
 
@@ -312,7 +321,7 @@ public:
     GLuint VAODebug, VBODebug;
     GLuint skyboxVAO, skyboxVBO;
     int grid_vertices_size;
-    void initGeom()
+	void initGeom()
     {
         // generating the grid
         std::vector<vec3> grid_x, grid_y, grid_z;
@@ -391,8 +400,8 @@ public:
 
 
 
-        string resourceDir = "../../resources" ;
-        string shadersDirectory = "../../resources/shaders";
+        string resourceDir = "../resources" ;
+        string shadersDirectory = "../resources/shaders";
         // Initialize mesh.
         shape_earth_ = make_shared<Shape>();
         shape_earth_->loadMesh(resourceDir + "/sphere2.obj");
@@ -597,9 +606,8 @@ public:
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
     
-    
     void initProgram(std::shared_ptr<Program> prog, vector<string> shaderv, vector<string> uniformv = vector<string>(), vector<string> attributesv = vector<string>()) {
-        prog->setVerbose(true);
+		prog->setVerbose(true);
         prog->setShaderNames(shaderDir + shaderv.at(0), shaderDir + shaderv.at(1), shaderv.size() > 2 ? shaderDir + shaderv.at(2) : "");
         
         if (!prog->init())
@@ -619,10 +627,25 @@ public:
         }
     }
 
+	void setResourceDirectory(const std::string& resDir) {
+		if (resDir.size() > 0) {
+			resourceDir = resDir;
+		}
+		else if (PLATFORM_NAME == "apple")
+		{
+			resourceDir = "../../resources";
+		}
+		else {
+			resourceDir = "../resources";
+		}
+		shaderDir = resourceDir + "/shaders";
+	}
+
     //General OGL initialization - set OGL state here
-    void init()
+	void init(const std::string& resDir)
     {
         GLSL::checkVersion();
+		setResourceDirectory(resDir);
         left_ =  right_ = forward_ = backward_ = 0;
         earth_dir_x_ = -1.5;
         earth_dir_z_ = 0.2;
@@ -639,7 +662,7 @@ public:
         prog_earth = make_shared<Program>();
         prog_moon = make_shared<Program>();
         prog_gw_source = make_shared<Program>();
-        postprocprog = make_shared<Program>();
+        prog_post_proc = make_shared<Program>();
         
         prog_box_DEBUG = make_shared<Program>();
         
@@ -669,11 +692,9 @@ public:
 
                 
         initProgram(prog_gw_source,
-//                    vector<string>({"vertPos","vertNor", "vertTex"}),
                     vector<string>({"/shader_vertex_sphere.glsl", "/shader_fragment_sphere.glsl"}),
                     vector<string>({"P", "V", "M"}),
                     vector<string>({"vertPos","vertNor", "vertTex"}));
-//        prog_gw_source->addUniform("campos");
 
 
 //        initProgram(prog_box_DEBUG,
@@ -681,7 +702,7 @@ public:
 //                    vector<string>({"/shader_vertex_debug.glsl", "/shader_fragment_debug.glsl"}));
 //        prog_box_DEBUG->addUniform("angle");
 
-        initProgram(postprocprog,
+        initProgram(prog_post_proc,
                     vector<string>({ "/ppvert.glsl", "/ppfrag.glsl" }));
 
         
@@ -911,25 +932,24 @@ public:
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        postprocprog->bind();
+        prog_post_proc->bind();
         glActiveTexture(GL_TEXTURE0);        glBindTexture(GL_TEXTURE_2D, FBO_MSAA_color);
         glBindVertexArray(VertexArrayIDBox);
         glDrawArrays(GL_TRIANGLES, 0, 6);
-        postprocprog->unbind();
+        prog_post_proc->unbind();
         }
     //*************************************
 };
 
-
 //******************************************************************************************
 int main(int argc, char **argv)
 {
-//    const std::string resourceDir = "../../resources";
-//    if (argc >= 2)
-//    {
-//        resourceDir = argv[1];
-//    }
-
+	std::string resourceDir;// = "../../resources"; // Where the resources are loaded from
+	if (argc >= 2)
+	{
+		resourceDir = argv[1];
+	}
+	
     Application *application = new Application();
 
     /* your main will always include a similar set up to establish your window
@@ -942,7 +962,7 @@ int main(int argc, char **argv)
     /* This is the code that will likely change program to program as you
         may need to initialize or set up different data and state */
     // Initialize scene.
-    application->init();
+    application->init(resourceDir);
     application->initGeom();
 
     // Loop until the user closes the window.
