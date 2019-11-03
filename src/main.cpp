@@ -11,6 +11,7 @@ CPE/CSC 471 Lab base code Wood/Dunn/Eckhardt
 #include "GLSL.h"
 #include "Program.h"
 #include "MatrixStack.h"
+#include "OpenVRclass.h"
 
 #include "WindowManager.h"
 #include "Shape.h"
@@ -111,6 +112,8 @@ private:
 
 	string resourceDir = "";
 	string shaderDir = "";
+
+	OpenVRApplication* vrapp = NULL;
 
 public:
     WindowManager * windowManager = nullptr;
@@ -268,24 +271,24 @@ public:
     // written
     void mouseCallback(GLFWwindow *window, int button, int action, int mods)
     {
-        double posX, posY;
-        float newPt[2];
-        if (action == GLFW_PRESS)
-        {
-            glfwGetCursorPos(window, &posX, &posY);
-            std::cout << "Pos X " << posX <<  " Pos Y " << posY << std::endl;
+        //double posX, posY;
+        //float newPt[2];
+        //if (action == GLFW_PRESS)
+        //{
+        //    glfwGetCursorPos(window, &posX, &posY);
+        //    std::cout << "Pos X " << posX <<  " Pos Y " << posY << std::endl;
 
-            //change this to be the points converted to WORLD
-            //THIS IS BROKEN< YOU GET TO FIX IT - yay!
-            newPt[0] = 0;
-            newPt[1] = 0;
+        //    //change this to be the points converted to WORLD
+        //    //THIS IS BROKEN< YOU GET TO FIX IT - yay!
+        //    newPt[0] = 0;
+        //    newPt[1] = 0;
 
-            std::cout << "converted:" << newPt[0] << " " << newPt[1] << std::endl;
-            glBindBuffer(GL_ARRAY_BUFFER, VertexBufferID);
-            //update the vertex array with the updated points
-            glBufferSubData(GL_ARRAY_BUFFER, sizeof(float)*6, sizeof(float)*2, newPt);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-        }
+        //    std::cout << "converted:" << newPt[0] << " " << newPt[1] << std::endl;
+        //    glBindBuffer(GL_ARRAY_BUFFER, VertexBufferID);
+        //    //update the vertex array with the updated points
+        //    glBufferSubData(GL_ARRAY_BUFFER, sizeof(float)*6, sizeof(float)*2, newPt);
+        //    glBindBuffer(GL_ARRAY_BUFFER, 0);
+        //}
     }
 
     //if the window is resized, capture the new size and reset the viewport
@@ -721,22 +724,24 @@ public:
     will actually issue the commands to draw any geometry you have set up to
     draw
     ********/
-    void render()
+    void render(int width, int height, mat4 VRheadmatrix)
     {
 
-        glBindFramebuffer(GL_FRAMEBUFFER, FBO_MSAA);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, FBO_MSAA_color, 0);
-        GLenum buffers[] = { GL_COLOR_ATTACHMENT0 };
-        glDrawBuffers(1, buffers);
+        //glBindFramebuffer(GL_FRAMEBUFFER, FBO_MSAA);
+        //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, FBO_MSAA_color, 0);
+        //GLenum buffers[] = { GL_COLOR_ATTACHMENT0 };
+        //glDrawBuffers(1, buffers);
         
         //glBindFramebuffer(GL_FRAMEBUFFER, 0);
         double frametime = get_last_elapsed_time();
 
         // Get current frame buffer size.
-        int width, height;
+        //int width, height;
         glfwGetFramebufferSize(windowManager->getHandle(), &width, &height);
         float aspect = width/(float)height;
-        glViewport(0, 0, width*MSAAFACT, height* MSAAFACT);
+
+		//VR stuff
+        //glViewport(0, 0, width*MSAAFACT, height* MSAAFACT);
 
         // Clear framebuffer.
         glClearColor(0.0, 0.0, 0.0, 1.0);
@@ -746,7 +751,7 @@ public:
         // Create the matrix stacks - please leave these alone for now
         
         glm::mat4 V, M, P; //View, Model and Perspective matrix
-        V = cam_.process(frametime);
+		V = VRheadmatrix * cam_.process(frametime);
         M = glm::mat4(1);
         // Apply orthographic projection....
         P = glm::perspective((float)(PI / 4.), (float)(aspect), 0.1f, 1000.0f); //so much type casting... GLM metods are quite funny ones
@@ -937,6 +942,12 @@ public:
         }
     //*************************************
 };
+Application* application = NULL; 
+OpenVRApplication* vrapp = NULL;
+
+void my_render(int width, int height, mat4 VRheadmatrix) {
+	application->render(width, height, VRheadmatrix);
+}
 
 //******************************************************************************************
 int main(int argc, char **argv)
@@ -947,27 +958,36 @@ int main(int argc, char **argv)
 		resourceDir = argv[1];
 	}
 	
-    Application *application = new Application();
+    application = new Application();
 
     /* your main will always include a similar set up to establish your window
         and GL context, etc. */
     WindowManager * windowManager = new WindowManager();
-    windowManager->init(1920, 1080);
-    windowManager->setEventCallbacks(application);
-    application->windowManager = windowManager;
+
+	//VR Stuff
+	vrapp = new OpenVRApplication();
+	windowManager->init(vrapp->get_render_width(), vrapp->get_render_height());
+    //windowManager->init(1920, 1080);
+
+	windowManager->setEventCallbacks(application);
+	application->windowManager = windowManager;
+
 
     /* This is the code that will likely change program to program as you
         may need to initialize or set up different data and state */
     // Initialize scene.
     application->init(resourceDir);
-    application->initGeom();
+	application->initGeom();
+	vrapp->init_buffers("../resources/shaders");
 
     // Loop until the user closes the window.
     while(! glfwWindowShouldClose(windowManager->getHandle()))
     {
         // Render scene.
-        application->render();
-        application->render_postproc();
+        //application->render();
+        //application->render_postproc();
+		vrapp->render_to_VR(my_render);
+		vrapp->render_to_screen(1);//0..left eye, 1..right eye
         // Swap front and back buffers.
         glfwSwapBuffers(windowManager->getHandle());
         // Poll for and process events.

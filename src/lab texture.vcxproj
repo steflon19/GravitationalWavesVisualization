@@ -23,6 +23,7 @@
     <ClCompile Include="GLSL.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MatrixStack.cpp" />
+    <ClCompile Include="OpenVRclass.cpp" />
     <ClCompile Include="Program.cpp" />
     <ClCompile Include="Shape.cpp" />
     <ClCompile Include="WindowManager.cpp" />
@@ -30,6 +31,7 @@
   <ItemGroup>
     <ClInclude Include="GLSL.h" />
     <ClInclude Include="MatrixStack.h" />
+    <ClInclude Include="OpenVRclass.h" />
     <ClInclude Include="Program.h" />
     <ClInclude Include="Shape.h" />
     <ClInclude Include="stb_image.h" />
@@ -56,7 +58,7 @@
     <VCProjectVersion>15.0</VCProjectVersion>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <ProjectGuid>{F184FBF9-CB70-477E-AF5C-E83C4987361D}</ProjectGuid>
-    <ProjectName>lab texture</ProjectName>
+    <ProjectName>GravViz</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -99,13 +101,13 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup>
-    <IncludePath>C:\OpenGL\include;$(SolutionDir)\ext\glad\include;$(VisualStudioDir)\SDKs\glm-0.9.8.5;$(VisualStudioDir)\SDKs\glfw-3.2.1.bin.WIN64\include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\libs\OpenVR\headers;C:\OpenGL\include;$(SolutionDir)\ext\glad\include;$(VisualStudioDir)\SDKs\glm-0.9.8.5;$(VisualStudioDir)\SDKs\glfw-3.2.1.bin.WIN64\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LibraryPath>C:\OpenGL\OpenGL\libs;$(VisualStudioDir)\SDKs\glfw-3.2.1.bin.WIN64\lib-vc2015;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LibraryPath>C:\OpenGL\libs;$(VisualStudioDir)\SDKs\glfw-3.2.1.bin.WIN64\lib-vc2015;$(LibraryPath)</LibraryPath>
+    <LibraryPath>C:\libs\OpenVR\lib\win32;C:\OpenGL\libs;$(VisualStudioDir)\SDKs\glfw-3.2.1.bin.WIN64\lib-vc2015;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -126,7 +128,7 @@
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>openvr_api.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

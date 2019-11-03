@@ -10,6 +10,7 @@
     <ClCompile Include="WindowManager.cpp" />
     <ClCompile Include="MatrixStack.cpp" />
     <ClCompile Include="Shape.cpp" />
+    <ClCompile Include="OpenVRclass.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Program.h" />
@@ -19,6 +20,7 @@
     <ClInclude Include="Shape.h" />
     <ClInclude Include="tiny_obj_loader.h" />
     <ClInclude Include="stb_image.h" />
+    <ClInclude Include="OpenVRclass.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="ext">
