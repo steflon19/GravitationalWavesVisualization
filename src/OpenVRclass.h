@@ -102,6 +102,8 @@ private:
 public:
 	int get_render_width() { return rtWidth; }
 	int get_render_height() { return rtHeight; }
+	void PrintTrackedDevices();
+	bool HandleInput();
 	OpenVRApplication();
 	bool init_buffers(string resourceDirectory);
 	virtual OpenVRApplication::~OpenVRApplication()

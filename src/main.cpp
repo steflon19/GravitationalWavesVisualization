@@ -32,7 +32,8 @@ using namespace glm;
 #ifndef BYTE
 #define BYTE bitset<8>
 #endif
-#define MSAAFACT 1
+#define MSAAFACT 3
+// TODO; ^get msaa to openVR
 
 double get_last_elapsed_time()
 {
@@ -782,6 +783,11 @@ public:
             earth_dir_y_ -= advanceVal;
         }
         
+		// playing with vr input
+
+		//cout << "_____Printing tracked devices_____" << endl;
+		//vrapp->PrintTrackedDevices();
+
         
         vec3 moveSphere = vec3(earth_dir_x_, earth_dir_y_, earth_dir_z_-0.1);
         mat4 translateSphere = translate(mat4(1), moveSphere);

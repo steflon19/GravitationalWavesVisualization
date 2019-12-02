@@ -132,6 +132,21 @@ std::string GetTrackedDeviceString(vr::IVRSystem *pHmd, vr::TrackedDeviceIndex_t
 }
 //*******************************************************************************************************************************************************
 
+void OpenVRApplication::PrintTrackedDevices() {
+	for (int td = vr::k_unTrackedDeviceIndex_Hmd; td < vr::k_unMaxTrackedDeviceCount; td++) {
+		if (hmd != NULL && hmd->IsTrackedDeviceConnected(td)) {
+			vr::ETrackedDeviceClass td_class = hmd->GetTrackedDeviceClass(td);
+
+			char* td_name = new char();
+			hmd->GetStringTrackedDeviceProperty(td, vr::Prop_TrackingSystemName_String, td_name, vr::k_unMaxPropertyStringSize);
+			// TODO: idk, maybe do something with this info..
+			string sss = td_class == ((vr::ETrackedDeviceClass)2) ? " IS CONTROLLER" : " ";
+			cout << "some info, type " << td_class << " name: " << td_name << sss << endl;
+		}
+	}
+}
+
+
 OpenVRApplication::OpenVRApplication()
 {
 	if (!hmdIsPresent())
@@ -216,6 +231,7 @@ void OpenVRApplication::initVR()
 
 	std::clog << GetTrackedDeviceString(hmd, vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_TrackingSystemName_String) << std::endl;
 	std::clog << GetTrackedDeviceString(hmd, vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SerialNumber_String) << std::endl;
+	PrintTrackedDevices();
 
 }
 //*******************************************************************************************************************************************************
