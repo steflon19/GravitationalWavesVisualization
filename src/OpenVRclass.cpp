@@ -132,6 +132,33 @@ std::string GetTrackedDeviceString(vr::IVRSystem *pHmd, vr::TrackedDeviceIndex_t
 }
 //*******************************************************************************************************************************************************
 
+void OpenVRApplication::SetupControllers() {
+
+	int numControllersInitialized = 0;
+	for (int td = vr::k_unTrackedDeviceIndex_Hmd; td < vr::k_unMaxTrackedDeviceCount; td++) {
+		if (hmd != NULL && hmd->IsTrackedDeviceConnected(td)) {
+			vr::ETrackedDeviceClass td_class = hmd->GetTrackedDeviceClass(td);
+			if (td_class == vr::ETrackedDeviceClass::TrackedDeviceClass_Controller) {
+
+				ControllerData* pC = &(controllers[numControllersInitialized]);
+
+				int sHand = -1;
+
+				vr::ETrackedControllerRole role = hmd->GetControllerRoleForTrackedDeviceIndex(td);
+				if (role == vr::TrackedControllerRole_Invalid) //Invalid hand is actually very common, always need to test for invalid hand (lighthouses have lost tracking)
+					sHand = 0;
+				else if (role == vr::TrackedControllerRole_LeftHand)
+					sHand = 1;
+				else if (role == vr::TrackedControllerRole_RightHand)
+					sHand = 2;
+				pC->hand = sHand;
+				pC->deviceId = td;
+				numControllersInitialized++;
+			}
+		}
+	}
+}
+
 void OpenVRApplication::PrintTrackedDevices() {
 	for (int td = vr::k_unTrackedDeviceIndex_Hmd; td < vr::k_unMaxTrackedDeviceCount; td++) {
 		if (hmd != NULL && hmd->IsTrackedDeviceConnected(td)) {
@@ -140,13 +167,144 @@ void OpenVRApplication::PrintTrackedDevices() {
 			char* td_name = new char();
 			hmd->GetStringTrackedDeviceProperty(td, vr::Prop_TrackingSystemName_String, td_name, vr::k_unMaxPropertyStringSize);
 			// TODO: idk, maybe do something with this info..
-			string sss = td_class == ((vr::ETrackedDeviceClass)2) ? " IS CONTROLLER" : " ";
+			string sss = td_class == vr::ETrackedDeviceClass::TrackedDeviceClass_Controller ? " IS CONTROLLER" : " ";
 			cout << "some info, type " << td_class << " name: " << td_name << sss << endl;
 		}
 	}
 }
 
+void OpenVRApplication::PollEvent() {
 
+	// Define a VREvent
+	vr::VREvent_t event;
+	if (hmd->PollNextEvent(&event, sizeof(event)))
+	{
+		HandleVRInput(event);
+	}
+}
+
+void OpenVRApplication::HandleVRInput(const vr::VREvent_t& event) {
+	// Touch B is k_EButton_ApplicationMenu ...
+
+	// Process SteamVR action state
+	// UpdateActionState is called each frame to update the state of the actions themselves. The application
+	// controls which action sets are active with the provided array of VRActiveActionSet_t structs.
+	/*vr::VRActiveActionSet_t actionSet = { 0 };
+	actionSet.ulActionSet = m_actionsetDemo;
+	vr::VRInput()->UpdateActionState(&actionSet, sizeof(actionSet), 1);
+
+	vr::VRInputValueHandle_t ulHapticDevice;
+	cout << "did blah" << endl;
+	if (GetDigitalActionRisingEdge(m_actionTriggerHaptic, &ulHapticDevice))
+	{
+		cout << "did something??? id: " << controller_index << endl;
+		if (ulHapticDevice == m_rHand[Left].m_source)
+		{
+			vr::VRInput()->TriggerHapticVibrationAction(m_rHand[Left].m_actionHaptic, 0, 1, 4.f, 1.0f, vr::k_ulInvalidInputValueHandle);
+		}
+		if (ulHapticDevice == m_rHand[Right].m_source)
+		{
+			vr::VRInput()->TriggerHapticVibrationAction(m_rHand[Right].m_actionHaptic, 0, 1, 4.f, 1.0f, vr::k_ulInvalidInputValueHandle);
+		}
+
+		hmd->TriggerHapticPulse(controller_index, 0, 1.0f);
+	} */
+
+	switch (event.eventType)
+	{
+		// TODO: maybe some other stuff here
+	default:
+		HandleVRButtonEvent(event);
+	}
+}
+
+void OpenVRApplication::HandleVRButtonEvent(vr::VREvent_t event) {
+	char* buf = new char[100];
+	if (event.eventType >= 200 && event.eventType <= 203)
+		if (event.data.controller.button == vr::k_EButton_A && event.eventType == vr::VREvent_ButtonPress)
+			cout << "handling A/X button press" << endl; // TODO: display stuff here probably
+	else
+		sprintf(buf, "\nEVENT--(OpenVR) Event: %d", event.eventType);
+}
+
+vr::HmdVector3_t OpenVRApplication::GetPosition(vr::HmdMatrix34_t matrix)
+{
+	vr::HmdVector3_t vector;
+
+	vector.v[0] = matrix.m[0][3];
+	vector.v[1] = matrix.m[1][3];
+	vector.v[2] = matrix.m[2][3];
+
+	return vector;
+}
+
+void OpenVRApplication::GetCoords() {
+	SetupControllers();
+
+	vr::TrackedDevicePose_t trackedDevicePose;
+	vr::VRControllerState_t controllerState;
+	vr::HmdQuaternion_t rot;
+
+
+	for (int i = 0; i < 2; i++)
+	{
+		ControllerData* pC = &(controllers[i]);
+
+		if (pC->deviceId < 0 ||
+			!hmd->IsTrackedDeviceConnected(pC->deviceId) ||
+			pC->hand </*=  Allow printing coordinates for invalid hand? Yes.*/ 0)
+			continue;
+
+		hmd->GetControllerStateWithPose(vr::TrackingUniverseStanding, pC->deviceId, &controllerState, sizeof(controllerState), &trackedDevicePose);
+		pC->pos = GetPosition(trackedDevicePose.mDeviceToAbsoluteTracking);
+		rot = GetRotation(trackedDevicePose.mDeviceToAbsoluteTracking);
+	}
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+// Purpose: Returns true if the action is active and its state is true
+//---------------------------------------------------------------------------------------------------------------------
+bool OpenVRApplication::GetDigitalActionState(vr::VRActionHandle_t action, vr::VRInputValueHandle_t* pDevicePath)
+{
+	vr::InputDigitalActionData_t actionData;
+	vr::VRInput()->GetDigitalActionData(action, &actionData, sizeof(actionData), vr::k_ulInvalidInputValueHandle);
+	if (pDevicePath)
+	{
+		*pDevicePath = vr::k_ulInvalidInputValueHandle;
+		if (actionData.bActive)
+		{
+			vr::InputOriginInfo_t originInfo;
+			if (vr::VRInputError_None == vr::VRInput()->GetOriginTrackedDeviceInfo(actionData.activeOrigin, &originInfo, sizeof(originInfo)))
+			{
+				*pDevicePath = originInfo.devicePath;
+			}
+		}
+	}
+	return actionData.bActive && actionData.bState;
+}
+
+
+//---------------------------------------------------------------------------------------------------------------------
+// Purpose: Returns true if the action is active and had a rising edge
+//---------------------------------------------------------------------------------------------------------------------
+bool OpenVRApplication::GetDigitalActionRisingEdge(vr::VRActionHandle_t action, vr::VRInputValueHandle_t* pDevicePath)
+{
+	vr::InputDigitalActionData_t actionData;
+	vr::VRInput()->GetDigitalActionData(action, &actionData, sizeof(actionData), vr::k_ulInvalidInputValueHandle);
+	if (pDevicePath)
+	{
+		*pDevicePath = vr::k_ulInvalidInputValueHandle;
+		if (actionData.bActive)
+		{
+			vr::InputOriginInfo_t originInfo;
+			if (vr::VRInputError_None == vr::VRInput()->GetOriginTrackedDeviceInfo(actionData.activeOrigin, &originInfo, sizeof(originInfo)))
+			{
+				*pDevicePath = originInfo.devicePath;
+			}
+		}
+	}
+	return actionData.bActive && actionData.bChanged && actionData.bState;
+}
 OpenVRApplication::OpenVRApplication()
 {
 	if (!hmdIsPresent())
@@ -231,6 +389,9 @@ void OpenVRApplication::initVR()
 
 	std::clog << GetTrackedDeviceString(hmd, vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_TrackingSystemName_String) << std::endl;
 	std::clog << GetTrackedDeviceString(hmd, vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SerialNumber_String) << std::endl;
+
+	vr::VRInput()->GetActionHandle("/actions/demo/in/TriggerHaptic", &m_actionTriggerHaptic);
+	vr::VRInput()->GetActionSetHandle("/actions/demo", &m_actionsetDemo);
 	PrintTrackedDevices();
 
 }
@@ -244,13 +405,15 @@ vr::TrackedDevicePose_t  OpenVRApplication::render_to_VR(void(*renderfunction)(i
 		render_to_offsetFBO(LEFTPOST);
 		render_to_offsetFBO(RIGHTPOST);
 		pose = submitFramesOpenGL(FBOtexture[RIGHTEYE + 2], FBOtexture[LEFTEYE + 2]);
+		PollEvent();
+		GetCoords();
 	}
 	return pose;
 }
 //*******************************************************************************************************************************************************
 void OpenVRApplication::render_to_screen(int texture_num)
 {
-	if (texture_num < 0 || texture_num>3 | hmd == NULL)texture_num = 0;
+	if (texture_num < 0 || texture_num>3 | hmd == NULL) texture_num = 0;
 	glViewport(0, 0, rtWidth, rtHeight);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	prog.bind();
