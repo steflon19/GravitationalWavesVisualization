@@ -257,8 +257,30 @@ void OpenVRApplication::GetCoords() {
 
 		hmd->GetControllerStateWithPose(vr::TrackingUniverseStanding, pC->deviceId, &controllerState, sizeof(controllerState), &trackedDevicePose);
 		pC->pos = GetPosition(trackedDevicePose.mDeviceToAbsoluteTracking);
-		rot = GetRotation(trackedDevicePose.mDeviceToAbsoluteTracking);
+		// std::cout << "device pos " << pC->pos.v[0] << " and " << pC->pos.v[1] << " and " << pC->pos.v[2] << std::endl;
+		//rot = GetRotation(trackedDevicePose.mDeviceToAbsoluteTracking);
 	}
+}
+
+vr::HmdVector3_t OpenVRApplication::GetControllerPos(int hand_type) {
+	GetCoords();
+	if (hand_type > 2 || hand_type < 1) cout << "Error, invalid controllers index " << hand_type << ". only 1 or 2 valid" << endl;
+	// maybe some error handling if only one or no hand is tracked?
+	ControllerData* pC = &(controllers[0]);
+	if(!hmd)
+		return vr::HmdVector3_t();
+
+	if (pC->hand == hand_type)
+		return pC->pos;
+	else {
+		pC = &(controllers[1]);
+
+		if (pC->hand == hand_type)
+			return pC->pos;
+		else
+			return vr::HmdVector3_t();
+	}
+
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -406,7 +428,8 @@ vr::TrackedDevicePose_t  OpenVRApplication::render_to_VR(void(*renderfunction)(i
 		render_to_offsetFBO(RIGHTPOST);
 		pose = submitFramesOpenGL(FBOtexture[RIGHTEYE + 2], FBOtexture[LEFTEYE + 2]);
 		PollEvent();
-		GetCoords();
+		// pulling this manually from main? probably should be done differently.. just commented to prevent double code.
+		// GetCoords();
 	}
 	return pose;
 }

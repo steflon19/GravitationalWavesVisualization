@@ -131,6 +131,7 @@ public:
 	void HandleVRInput(const vr::VREvent_t& event);
 	void PollEvent();
 	void GetCoords();
+	vr::HmdVector3_t GetControllerPos(int index);
 	vr::HmdVector3_t GetPosition(vr::HmdMatrix34_t matrix);
 	void SetupControllers();
 	OpenVRApplication();

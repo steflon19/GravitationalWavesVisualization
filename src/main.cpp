@@ -21,19 +21,12 @@ CPE/CSC 471 Lab base code Wood/Dunn/Eckhardt
 #include <bitset>
 using namespace std;
 using namespace glm;
-#if defined(__APPLE__)
-#define PLATFORM_NAME "apple"
-#elif defined(_WIN32)
-#define PLATFORM_NAME "windows"
-#elif defined(__linux__)
-#define PLATFORM_NAME "linux" 
-#endif
 
 #ifndef BYTE
 #define BYTE bitset<8>
 #endif
-#define MSAAFACT 3
-// TODO; ^get msaa to openVR
+#define MSAAFACT 4
+// TODO: ^get msaa to openVR
 
 double get_last_elapsed_time()
 {
@@ -103,7 +96,7 @@ public:
 class Application : public EventCallbacks
 {
 private:
-    shared_ptr<Shape> shape_earth_, shape_moon_, shape_gw_source_;
+    shared_ptr<Shape> shape_earth_, shape_moon_, shape_gw_source_, shape_hand_left, shape_hand_right;
 
     // sphere controls
     GLuint left_, right_, forward_, backward_, up_, down_;
@@ -120,15 +113,16 @@ public:
     WindowManager * windowManager = nullptr;
 
     // Our shader program
-    std::shared_ptr<Program> prog_grid_x;
-    std::shared_ptr<Program> prog_grid_y;
-    std::shared_ptr<Program> prog_grid_z;
-    std::shared_ptr<Program> prog_earth;
-    std::shared_ptr<Program> prog_moon;
+    std::shared_ptr<Program> prog_grid_x, prog_grid_y, prog_grid_z;
+	std::shared_ptr<Program> prog_earth, prog_moon, prog_gw_source;
+	std::shared_ptr<Program> prog_hand_left, prog_hand_right;
     std::shared_ptr<Program> prog_skybox;
-    std::shared_ptr<Program> prog_gw_source, prog_post_proc;
+    std::shared_ptr<Program> prog_post_proc;
     
     std::shared_ptr<Program> prog_box_DEBUG;
+
+	vec3 HandPosLeft = vec3(0);
+	vec3 HandPosRight = vec3(0);
 
     // Contains vertex information for OpenGL
     GLuint VertexArrayID;
@@ -137,7 +131,7 @@ public:
     GLuint VertexBufferID, VertexColorIDBox, IndexBufferIDBox;
 
     //texture data
-    GLuint Texture_grid, Texture_earth, Texture_sun, Texture_spiral, Texture_moon;
+    GLuint Texture_grid, Texture_earth, Texture_sun, Texture_spiral, Texture_moon, Texture_grass;
     GLuint cubemapTexture, FBO_MSAA, FBO_MSAA_depth, FBO_MSAA_color, VertexArrayIDBox, VertexBufferIDBox;
 
 
@@ -320,7 +314,6 @@ public:
         
     }
     
-    // TODO: there has to be a way to do this better? oO
     GLuint VAOX, VAOY, VAOZ, VBOX, VBOY, VBOZ;
     GLuint VAODebug, VBODebug;
     GLuint skyboxVAO, skyboxVBO;
@@ -331,7 +324,6 @@ public:
         std::vector<vec3> grid_x, grid_y, grid_z;
         float step = 0.125/2;
         float gridSize = 2.;
-        // TODO; increase this later for better curves, for now 2 for better performance
         int numPoints = 10;
         float innerStep = step / (float)numPoints;
         // the grid is rendered as LINE_STRIP, therefore we always set pairs of points (a->b, b->c, etc..)
@@ -359,13 +351,6 @@ public:
                     }
                 }
             }
-        // previous code..
-        //                        pos.push_back(vec3(x, y, z));
-        //                        pos.push_back(vec3(x, y+step, z));
-        //                        pos.push_back(vec3(x, y, z));
-        //                        pos.push_back(vec3(x+step, y , z));
-        //                        pos.push_back(vec3(x, y, z));
-        //                        pos.push_back(vec3(x , y, z+step));
         
         // TODO: add "closing" line (just because) at the end.
         
@@ -414,12 +399,21 @@ public:
         shape_moon_->resize();
         shape_moon_->init();
 
-        // this shoudl be obsolete later, just now to visualize the source of gravitational waves
+        // this shoudl be obsolete later? just now to visualize the source of gravitational waves
         shape_gw_source_ = make_shared<Shape>();
         //shape->loadMesh(resourceDir + "/t800.obj");
         shape_gw_source_->loadMesh(resourceDir + "/sphere.obj");
         shape_gw_source_->resize();
         shape_gw_source_->init();
+
+		shape_hand_left = make_shared<Shape>();
+		shape_hand_left->loadMesh(resourceDir + "/sphere.obj");
+		shape_hand_left->resize();
+		shape_hand_left->init();
+		shape_hand_right = make_shared<Shape>();
+		shape_hand_right->loadMesh(resourceDir + "/sphere.obj");
+		shape_hand_right->resize();
+		shape_hand_right->init();
         
         int width, height, channels;
         char filepath[1000];
@@ -632,13 +626,12 @@ public:
 		if (resDir.size() > 0) {
 			resourceDir = resDir;
 		}
-		else if (PLATFORM_NAME == "apple")
-		{
-			resourceDir = "../../resources";
-		}
-		else {
-			resourceDir = "../resources";
-		}
+
+#if defined(__APPLE__)
+		resourceDir = "../../resources";
+#else
+		resourceDir = "../resources";
+#endif
 		shaderDir = resourceDir + "/shaders";
 	}
 
@@ -662,8 +655,11 @@ public:
         prog_grid_z = make_shared<Program>();
         prog_earth = make_shared<Program>();
         prog_moon = make_shared<Program>();
-        prog_gw_source = make_shared<Program>();
-        prog_post_proc = make_shared<Program>();
+		prog_gw_source = make_shared<Program>();
+		prog_post_proc = make_shared<Program>();
+
+		prog_hand_left = make_shared<Program>();
+		prog_hand_right = make_shared<Program>();
         
         prog_box_DEBUG = make_shared<Program>();
         
@@ -684,12 +680,21 @@ public:
                     vector<string>({"/shader_vertex_earth.glsl", "/shader_fragment_sphere.glsl"}),
                     vector<string>({"P", "V", "M", "Ry"}),
                     vector<string>({"vertPos", "vertNor", "vertTex"}));
-                
-        initProgram(prog_moon,
-                    vector<string>({"/shader_vertex_earth.glsl", "/shader_fragment_sphere.glsl"}),
-                    vector<string>({"P", "V", "M", "Ry"}),
-                    vector<string>({"vertPos", "vertNor", "vertTex"}));
-        
+
+		initProgram(prog_moon,
+			vector<string>({ "/shader_vertex_earth.glsl", "/shader_fragment_sphere.glsl" }),
+			vector<string>({ "P", "V", "M", "Ry" }),
+			vector<string>({ "vertPos", "vertNor", "vertTex" }));
+
+
+		initProgram(prog_hand_left,
+			vector<string>({ "/shader_vertex_sphere.glsl", "/shader_fragment_sphere.glsl" }),
+			vector<string>({ "P", "V", "M"}),
+			vector<string>({ "vertPos", "vertNor", "vertTex" }));
+		initProgram(prog_hand_right,
+			vector<string>({ "/shader_vertex_sphere.glsl", "/shader_fragment_sphere.glsl" }),
+			vector<string>({ "P", "V", "M"}),
+			vector<string>({ "vertPos", "vertNor", "vertTex" }));
 
                 
         initProgram(prog_gw_source,
@@ -782,12 +787,6 @@ public:
         } else if (down_ == 1) {
             earth_dir_y_ -= advanceVal;
         }
-        
-		// playing with vr input
-
-		//cout << "_____Printing tracked devices_____" << endl;
-		//vrapp->PrintTrackedDevices();
-
         
         vec3 moveSphere = vec3(earth_dir_x_, earth_dir_y_, earth_dir_z_-0.1);
         mat4 translateSphere = translate(mat4(1), moveSphere);
@@ -898,6 +897,34 @@ public:
         glDrawArrays(GL_LINES, 0, grid_vertices_size);
         prog_grid_z->unbind();
 
+		float handScale = .1f;
+		prog_hand_left->bind();
+		glUniformMatrix4fv(prog_hand_left->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(prog_hand_left->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+		M = mat4(1);
+		M = translate(mat4(1), HandPosLeft) * scale(mat4(1), vec3(handScale));
+		glUniformMatrix4fv(prog_hand_left->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, Texture_sun);
+
+		shape_hand_left->draw(prog_hand_left, false);
+		prog_hand_left->unbind();
+
+		prog_hand_right->bind();
+		glUniformMatrix4fv(prog_hand_right->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(prog_hand_right->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+		M = mat4(1);
+		M = translate(mat4(1), HandPosRight) * scale(mat4(1), vec3(handScale));
+		glUniformMatrix4fv(prog_hand_right->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, Texture_sun);
+		shape_hand_right->draw(prog_hand_right, false);
+		prog_hand_right->unbind();
+
+
+		//printVec(HandPosOne, "HandPos 1");
+		//printVec(HandPosTwo, "HandPos 2");
+
 //        prog_box_DEBUG->bind();
 //        P = V = mat4(1);
 //        M = scale(mat4(1),vec3(1.,aspect,1.));
@@ -992,8 +1019,15 @@ int main(int argc, char **argv)
         // Render scene.
         //application->render();
         //application->render_postproc();
+		// 1 = left and 2 = right
+		vr::HmdVector3_t controllerPos = vrapp->GetControllerPos(1);
+		application->HandPosLeft = vec3(controllerPos.v[0], controllerPos.v[1], controllerPos.v[2]);
+		controllerPos = vrapp->GetControllerPos(2);
+		application->HandPosRight = vec3(controllerPos.v[0], controllerPos.v[1], controllerPos.v[2]);
+
 		vrapp->render_to_VR(my_render);
 		vrapp->render_to_screen(1);//0..left eye, 1..right eye
+
         // Swap front and back buffers.
         glfwSwapBuffers(windowManager->getHandle());
         // Poll for and process events.
