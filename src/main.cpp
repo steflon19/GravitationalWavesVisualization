@@ -131,7 +131,7 @@ public:
     GLuint VertexBufferID, VertexColorIDBox, IndexBufferIDBox;
 
     //texture data
-    GLuint Texture_grid, Texture_earth, Texture_sun, Texture_spiral, Texture_moon, Texture_grass;
+    GLuint Texture_grid, Texture_earth, Texture_sun, Texture_spiral, Texture_moon, Texture_marble;
     GLuint cubemapTexture, FBO_MSAA, FBO_MSAA_depth, FBO_MSAA_color, VertexArrayIDBox, VertexBufferIDBox;
 
 
@@ -514,23 +514,43 @@ public:
         glUniform1i(Tex3Location, 0);
         
 //        glBindVertexArray(0);
-        
+
 //        texture spiral
-        str = resourceDir + "/double_spiral_small.png";
-        strcpy(filepath, str.c_str());
-        data = stbi_load(filepath, &width, &height, &channels, 4);
-        glGenTextures(1, &Texture_spiral);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, Texture_spiral);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-        GLuint Tex4Location = glGetUniformLocation(prog_box_DEBUG->pid, "tex");
-        glUseProgram(prog_box_DEBUG->pid);
-        glUniform1i(Tex4Location, 0);
+		str = resourceDir + "/double_spiral_small.png";
+		strcpy(filepath, str.c_str());
+		data = stbi_load(filepath, &width, &height, &channels, 4);
+		glGenTextures(1, &Texture_spiral);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, Texture_spiral);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+		GLuint Tex4Location = glGetUniformLocation(prog_box_DEBUG->pid, "tex");
+		glUseProgram(prog_box_DEBUG->pid);
+		glUniform1i(Tex4Location, 0);
+		//        texture marble
+		str = resourceDir + "/marble.jpg";
+		memset(filepath, 0, sizeof(filepath));
+		strcpy(filepath, str.c_str());
+		data = stbi_load(filepath, &width, &height, &channels, 4);
+		glGenTextures(1, &Texture_marble);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, Texture_marble);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+		GLuint Tex5Location = glGetUniformLocation(prog_hand_left->pid, "tex");
+		glUseProgram(prog_hand_left->pid);
+		glUniform1i(Tex5Location, 0);
+		Tex5Location = glGetUniformLocation(prog_hand_right->pid, "tex");
+		glUseProgram(prog_hand_right->pid);
+		glUniform1i(Tex5Location, 0);
         
         glBindVertexArray(0);
         
@@ -899,25 +919,26 @@ public:
 
 		float handScale = .1f;
 		prog_hand_left->bind();
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, Texture_marble);
 		glUniformMatrix4fv(prog_hand_left->getUniform("P"), 1, GL_FALSE, &P[0][0]);
 		glUniformMatrix4fv(prog_hand_left->getUniform("V"), 1, GL_FALSE, &V[0][0]);
 		M = mat4(1);
 		M = translate(mat4(1), HandPosLeft) * scale(mat4(1), vec3(handScale));
 		glUniformMatrix4fv(prog_hand_left->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, Texture_sun);
 
 		shape_hand_left->draw(prog_hand_left, false);
 		prog_hand_left->unbind();
 
 		prog_hand_right->bind();
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, Texture_marble);
 		glUniformMatrix4fv(prog_hand_right->getUniform("P"), 1, GL_FALSE, &P[0][0]);
 		glUniformMatrix4fv(prog_hand_right->getUniform("V"), 1, GL_FALSE, &V[0][0]);
 		M = mat4(1);
 		M = translate(mat4(1), HandPosRight) * scale(mat4(1), vec3(handScale));
 		glUniformMatrix4fv(prog_hand_right->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, Texture_sun);
+
 		shape_hand_right->draw(prog_hand_right, false);
 		prog_hand_right->unbind();
 
