@@ -118,6 +118,7 @@ private:
 	vr::IVRSystem* hmd = NULL;
 	int rtWidth = 0;
 	int rtHeight = 0;
+	float msaa = 1;
 
 	inline static bool hmdIsPresent() { return vr::VR_IsHmdPresent(); }
 	vr::TrackedDevicePose_t submitFramesOpenGL(int leftEyeTex, int rightEyeTex, bool linear = false);
@@ -135,7 +136,7 @@ public:
 	vr::HmdVector3_t GetPosition(vr::HmdMatrix34_t matrix);
 	void SetupControllers();
 	OpenVRApplication();
-	bool init_buffers(string resourceDirectory);
+	bool init_buffers(string resourceDirectory,int msaa_fact);
 	virtual OpenVRApplication::~OpenVRApplication()
 	{
 		if (hmd)

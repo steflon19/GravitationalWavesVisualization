@@ -56,7 +56,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
-    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
     <ProjectGuid>{F184FBF9-CB70-477E-AF5C-E83C4987361D}</ProjectGuid>
     <ProjectName>GravViz</ProjectName>
   </PropertyGroup>
@@ -64,7 +64,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -101,13 +101,13 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup>
-    <IncludePath>C:\libs\OpenVR\headers;C:\OpenGL\include;$(SolutionDir)\ext\glad\include;$(VisualStudioDir)\SDKs\glm-0.9.8.5;$(VisualStudioDir)\SDKs\glfw-3.2.1.bin.WIN64\include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\OpenVR\headers;C:\OpenGL\include;$(SolutionDir)\ext\glad\include;$(VisualStudioDir)\SDKs\glm-0.9.8.5;$(VisualStudioDir)\SDKs\glfw-3.2.1.bin.WIN64\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LibraryPath>C:\OpenGL\OpenGL\libs;$(VisualStudioDir)\SDKs\glfw-3.2.1.bin.WIN64\lib-vc2015;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LibraryPath>C:\libs\OpenVR\lib\win32;C:\OpenGL\libs;$(VisualStudioDir)\SDKs\glfw-3.2.1.bin.WIN64\lib-vc2015;$(LibraryPath)</LibraryPath>
+    <LibraryPath>C:\OpenVR\lib\win32;C:\OpenGL\libs;$(VisualStudioDir)\SDKs\glfw-3.2.1.bin.WIN64\lib-vc2015;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>

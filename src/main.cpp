@@ -25,7 +25,7 @@ using namespace glm;
 #ifndef BYTE
 #define BYTE bitset<8>
 #endif
-#define MSAAFACT 4
+#define MSAAFACT 2
 // TODO: ^get msaa to openVR
 
 double get_last_elapsed_time()
@@ -130,136 +130,144 @@ public:
     // Data necessary to give our box to OpenGL
     GLuint VertexBufferID, VertexColorIDBox, IndexBufferIDBox;
 
+	vec2 bi_star_facts = vec2(1, 1);
+	float bi_star_angle_off = 0.2;
     //texture data
     GLuint Texture_grid, Texture_earth, Texture_sun, Texture_spiral, Texture_moon, Texture_marble;
     GLuint cubemapTexture, FBO_MSAA, FBO_MSAA_depth, FBO_MSAA_color, VertexArrayIDBox, VertexBufferIDBox;
 
 
-    void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
-    {
-        if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-        {
-            glfwSetWindowShouldClose(window, GL_TRUE);
-        }
-        
-        // utility
-        if(key == GLFW_KEY_R && action == GLFW_RELEASE) {
-            earth_dir_x_ = -1.5;
-            earth_dir_z_ = 0.2;
-            earth_dir_y_ = 0.;
-        }
-        
-        if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS)
-        {
-            cam_.shift_active = 1;
-        }
-        if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_RELEASE)
-        {
-            cam_.shift_active = 0;
-        }
-        
-        // CAMERA
-        // move left/right
-        if (key == GLFW_KEY_W && action == GLFW_PRESS)
-        {
-            cam_.w = 1;
-        }
-        if (key == GLFW_KEY_W && action == GLFW_RELEASE)
-        {
-            cam_.w = 0;
-        }
-        if (key == GLFW_KEY_S && action == GLFW_PRESS)
-        {
-            cam_.s = 1;
-        }
-        if (key == GLFW_KEY_S && action == GLFW_RELEASE)
-        {
-            cam_.s = 0;
-        }
-        // turn left/right
-        if (key == GLFW_KEY_A && action == GLFW_PRESS)
-        {
-            cam_.a = 1;
-        }
-        if (key == GLFW_KEY_A && action == GLFW_RELEASE)
-        {
-            cam_.a = 0;
-        }
-        if (key == GLFW_KEY_D && action == GLFW_PRESS)
-        {
-            cam_.d = 1;
-        }
-        if (key == GLFW_KEY_D && action == GLFW_RELEASE)
-        {
-            cam_.d = 0;
-        }
-        // move up/down
-        if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
-        {
-            cam_.space = 1;
-        }
-        if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE)
-        {
-            cam_.space = 0;
-        }
-        if (key == GLFW_KEY_C && action == GLFW_PRESS)
-        {
-            cam_.c = 1;
-        }
-        if (key == GLFW_KEY_C && action == GLFW_RELEASE)
-        {
-            cam_.c = 0;
-        }
-        
-        // Sphere
-        if (key == GLFW_KEY_LEFT && action == GLFW_PRESS)
-        {
-            left_ = 1;
-        }
-        if (key == GLFW_KEY_LEFT && action == GLFW_RELEASE)
-        {
-            left_ = 0;
-        }
-        if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
-        {
-            right_ = 1;
-        }
-        if (key == GLFW_KEY_RIGHT && action == GLFW_RELEASE)
-        {
-            right_ = 0;
-        }
-        if (key == GLFW_KEY_UP && action == GLFW_PRESS)
-        {
-            forward_ = 1;
-        }
-        if (key == GLFW_KEY_UP && action == GLFW_RELEASE)
-        {
-            forward_ = 0;
-        }
-        if (key == GLFW_KEY_DOWN && action == GLFW_PRESS)
-        {
-            backward_ = 1;
-        }
-        if (key == GLFW_KEY_DOWN && action == GLFW_RELEASE)
-        {
-            backward_ = 0;
-        }
-        if (key == GLFW_KEY_O && action == GLFW_PRESS)
-        {
-            up_ = 1;
-        }
-        if (key == GLFW_KEY_O && action == GLFW_RELEASE)
-        {
-            up_ = 0;
-        }
-        if (key == GLFW_KEY_L && action == GLFW_PRESS)
-        {
-            down_ = 1;
-        }
-        if (key == GLFW_KEY_L && action == GLFW_RELEASE)
-        {
-            down_ = 0;
-        }
+	void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+		{
+		if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+			{
+			glfwSetWindowShouldClose(window, GL_TRUE);
+			}
+
+		// utility
+		if (key == GLFW_KEY_R && action == GLFW_RELEASE) {
+			earth_dir_x_ = -1.5;
+			earth_dir_z_ = 0.2;
+			earth_dir_y_ = 0.;
+			}
+
+		if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS)
+			{
+			cam_.shift_active = 1;
+			}
+		if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_RELEASE)
+			{
+			cam_.shift_active = 0;
+			}
+
+		// CAMERA
+		// move left/right
+		if (key == GLFW_KEY_W && action == GLFW_PRESS)
+			{
+			cam_.w = 1;
+			}
+		if (key == GLFW_KEY_W && action == GLFW_RELEASE)
+			{
+			cam_.w = 0;
+			}
+		if (key == GLFW_KEY_S && action == GLFW_PRESS)
+			{
+			cam_.s = 1;
+			}
+		if (key == GLFW_KEY_S && action == GLFW_RELEASE)
+			{
+			cam_.s = 0;
+			}
+		// turn left/right
+		if (key == GLFW_KEY_A && action == GLFW_PRESS)
+			{
+			cam_.a = 1;
+			}
+		if (key == GLFW_KEY_A && action == GLFW_RELEASE)
+			{
+			cam_.a = 0;
+			}
+		if (key == GLFW_KEY_D && action == GLFW_PRESS)
+			{
+			cam_.d = 1;
+			}
+		if (key == GLFW_KEY_D && action == GLFW_RELEASE)
+			{
+			cam_.d = 0;
+			}
+		// move up/down
+		if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
+			{
+			cam_.space = 1;
+			}
+		if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE)
+			{
+			cam_.space = 0;
+			}
+		if (key == GLFW_KEY_C && action == GLFW_PRESS)
+			{
+			cam_.c = 1;
+			}
+		if (key == GLFW_KEY_C && action == GLFW_RELEASE)
+			{
+			cam_.c = 0;
+			}
+
+		// Sphere
+		if (key == GLFW_KEY_LEFT && action == GLFW_PRESS)
+			{
+			left_ = 1;
+			}
+		if (key == GLFW_KEY_LEFT && action == GLFW_RELEASE)
+			{
+			left_ = 0;
+			}
+		if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
+			{
+			right_ = 1;
+			}
+		if (key == GLFW_KEY_RIGHT && action == GLFW_RELEASE)
+			{
+			right_ = 0;
+			}
+		if (key == GLFW_KEY_UP && action == GLFW_PRESS)
+			{
+			forward_ = 1;
+			}
+		if (key == GLFW_KEY_UP && action == GLFW_RELEASE)
+			{
+			forward_ = 0;
+			}
+		if (key == GLFW_KEY_DOWN && action == GLFW_PRESS)
+			{
+			backward_ = 1;
+			}
+		if (key == GLFW_KEY_DOWN && action == GLFW_RELEASE)
+			{
+			backward_ = 0;
+			}
+		if (key == GLFW_KEY_O && action == GLFW_PRESS)
+			{
+			up_ = 1;
+			}
+		if (key == GLFW_KEY_O && action == GLFW_RELEASE)
+			{
+			up_ = 0;
+			}
+		if (key == GLFW_KEY_L && action == GLFW_PRESS)
+			{
+			down_ = 1;
+			}
+		if (key == GLFW_KEY_L && action == GLFW_RELEASE)
+			{
+			down_ = 0;
+			}
+		if (key == GLFW_KEY_Y && action == GLFW_RELEASE) { bi_star_facts.x += 0.1; cout << bi_star_facts.x << endl; }
+		if (key == GLFW_KEY_U && action == GLFW_RELEASE) { bi_star_facts.x -= 0.1;	cout << bi_star_facts.x << endl;			}
+		if (key == GLFW_KEY_H && action == GLFW_RELEASE) { bi_star_facts.y += 0.1; cout << bi_star_facts.y << endl;			}
+		if (key == GLFW_KEY_J && action == GLFW_RELEASE) { bi_star_facts.y -= 0.1; cout << bi_star_facts.y << endl;			}
+
+
     }
 
     // callback for the mouse when clicked move the triangle when helper functions
@@ -411,7 +419,7 @@ public:
 		shape_hand_left->resize();
 		shape_hand_left->init();
 		shape_hand_right = make_shared<Shape>();
-		shape_hand_right->loadMesh(resourceDir + "/sphere.obj");
+		shape_hand_right->loadMesh(resourceDir + "/sphere.obj");// "/controller_right.obj", &(resourceDir + "/controller_right.mtl"));
 		shape_hand_right->resize();
 		shape_hand_right->init();
         
@@ -516,7 +524,7 @@ public:
 //        glBindVertexArray(0);
 
 //        texture spiral
-		str = resourceDir + "/double_spiral_small.png";
+		str = resourceDir + "/double_spiral.png";
 		strcpy(filepath, str.c_str());
 		data = stbi_load(filepath, &width, &height, &channels, 4);
 		glGenTextures(1, &Texture_spiral);
@@ -685,41 +693,41 @@ public:
         
         initProgram(prog_grid_x,
                     vector<string>({"/shader_vertex_grid.glsl", "/shader_fragment_grid.glsl", "/shader_geometry_x.glsl"}),
-                    vector<string>({"P", "V", "M", "Ry","SpherePos", "MoonPos", "earthScale"}));
+                    vector<string>({"P", "V", "M", "Ry","SpherePos", "MoonPos", "earthScale","bi_star_facts" }));
         
         initProgram(prog_grid_y,
                     vector<string>({"/shader_vertex_grid.glsl", "/shader_fragment_grid.glsl", "/shader_geometry_y.glsl"}),
-                    vector<string>({"P", "V", "M", "Ry","SpherePos", "MoonPos", "earthScale"}));
+                    vector<string>({"P", "V", "M", "Ry","SpherePos", "MoonPos", "earthScale","bi_star_facts" }));
         
         initProgram(prog_grid_z,
                     vector<string>({"/shader_vertex_grid.glsl", "/shader_fragment_grid.glsl", "/shader_geometry_z.glsl"}),
-                    vector<string>({"P", "V", "M", "Ry","SpherePos", "MoonPos", "earthScale"}));
+                    vector<string>({"P", "V", "M", "Ry","SpherePos", "MoonPos", "earthScale","bi_star_facts" }));
     
     
         initProgram(prog_earth,
                     vector<string>({"/shader_vertex_earth.glsl", "/shader_fragment_sphere.glsl"}),
-                    vector<string>({"P", "V", "M", "Ry"}),
+                    vector<string>({"P", "V", "M", "Ry","lightpos","colordot","bi_star_facts" }),
                     vector<string>({"vertPos", "vertNor", "vertTex"}));
 
 		initProgram(prog_moon,
 			vector<string>({ "/shader_vertex_earth.glsl", "/shader_fragment_sphere.glsl" }),
-			vector<string>({ "P", "V", "M", "Ry" }),
+			vector<string>({ "P", "V", "M", "Ry","lightpos" ,"colordot","bi_star_rad_fact" }),
 			vector<string>({ "vertPos", "vertNor", "vertTex" }));
 
 
 		initProgram(prog_hand_left,
 			vector<string>({ "/shader_vertex_sphere.glsl", "/shader_fragment_sphere.glsl" }),
-			vector<string>({ "P", "V", "M"}),
-			vector<string>({ "vertPos", "vertNor", "vertTex" }));
+			vector<string>({ "P", "V", "M","lightpos" ,"colordot" }),
+			vector<string>({ "vertPos", "vertNor", "vertTex"}));
 		initProgram(prog_hand_right,
 			vector<string>({ "/shader_vertex_sphere.glsl", "/shader_fragment_sphere.glsl" }),
-			vector<string>({ "P", "V", "M"}),
+			vector<string>({ "P", "V", "M","lightpos" ,"colordot" }),
 			vector<string>({ "vertPos", "vertNor", "vertTex" }));
 
                 
         initProgram(prog_gw_source,
                     vector<string>({"/shader_vertex_sphere.glsl", "/shader_fragment_sphere.glsl"}),
-                    vector<string>({"P", "V", "M"}),
+                    vector<string>({"P", "V", "M","lightpos" ,"colordot"  }),
                     vector<string>({"vertPos","vertNor", "vertTex"}));
 
 
@@ -753,6 +761,8 @@ public:
     void render(int width, int height, mat4 VRheadmatrix)
     {
 
+		vec4 lightpos = vec4(0, 0, 0, 1);
+		vec3 colordot = vec3(1);
         //glBindFramebuffer(GL_FRAMEBUFFER, FBO_MSAA);
         //glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, FBO_MSAA_color, 0);
         //GLenum buffers[] = { GL_COLOR_ATTACHMENT0 };
@@ -777,16 +787,48 @@ public:
         // Create the matrix stacks - please leave these alone for now
         
         glm::mat4 V, M, P; //View, Model and Perspective matrix
-		V = VRheadmatrix * cam_.process(frametime);
+		mat4 camPos = cam_.process(frametime);
+		V = VRheadmatrix * camPos;
         M = glm::mat4(1);
         // Apply orthographic projection....
         P = glm::perspective((float)(PI / 4.), (float)(aspect), 0.1f, 1000.0f); //so much type casting... GLM metods are quite funny ones
 
         
         static float ang = 0.;
-        ang += sin(frametime);
+        ang += sin(frametime* bi_star_facts.y);
         mat4 Ry = rotate(mat4(1), ang, vec3(0, 1, 0));
-        
+		float angle_offset = 0.0;
+		mat4 Ry_bistars = rotate(mat4(1), -ang * 0.5f + bi_star_angle_off, vec3(0, 1, 0));
+
+	
+		float bi_star_distance = 0.28 * bi_star_facts.x;
+
+
+		prog_gw_source->bind();
+		//star 1:
+		glUniformMatrix4fv(prog_gw_source->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(prog_gw_source->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+		M = mat4(1);
+		mat4 transM = translate(mat4(1), vec3(bi_star_distance*0.5,0,0));
+		M = Ry_bistars * transM * scale(mat4(1), vec3(.02, .02, 0.02));
+		glUniformMatrix4fv(prog_gw_source->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		lightpos.w = 1;
+		glUniform4fv(prog_gw_source->getUniform("lightpos"), 1, &lightpos.x);
+		colordot = vec3(0.8, 0.9, 2.6);
+		glUniform3fv(prog_gw_source->getUniform("colordot"), 1, &colordot.x);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, Texture_sun);
+		shape_gw_source_->draw(prog_gw_source, false);
+		//star 2:
+		transM = translate(mat4(1), vec3(-bi_star_distance * 0.5, 0, 0));
+		M = Ry_bistars *transM * scale(mat4(1), vec3(.02, .02, 0.02));
+		glUniformMatrix4fv(prog_gw_source->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		colordot = vec3(1.1, 1.9, 1.0);
+		glUniform3fv(prog_gw_source->getUniform("colordot"), 1, &colordot.x);
+		shape_gw_source_->draw(prog_gw_source, false);
+		prog_gw_source->unbind();
+
+
         prog_earth->bind();
         glUniformMatrix4fv(prog_earth->getUniform("P"), 1, GL_FALSE, &P[0][0]);
         glUniformMatrix4fv(prog_earth->getUniform("V"), 1, GL_FALSE, &V[0][0]);
@@ -817,6 +859,11 @@ public:
         mat4 earthMatrix = M;
         glUniformMatrix4fv(prog_earth->getUniform("M"), 1, GL_FALSE, &M[0][0]);
         glUniformMatrix4fv(prog_earth->getUniform("Ry"), 1, GL_FALSE, &Ry[0][0]);
+		lightpos.w = 0;
+		glUniform4fv(prog_earth->getUniform("lightpos"), 1, &lightpos.x);
+		colordot = vec3(1);
+		glUniform3fv(prog_earth->getUniform("colordot"), 1, &colordot.x);
+		glUniform2fv(prog_earth->getUniform("bi_star_facts"), 1,&bi_star_facts.x);
 //        glUniform3fv(prog_earth->getUniform("campos"), 1, &cam_.pos[0]);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, Texture_earth);
@@ -827,17 +874,24 @@ public:
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         prog_earth->unbind();
         
-        // TODO: insert moon draw here
+        // moon
         prog_moon->bind();
         glUniformMatrix4fv(prog_moon->getUniform("P"), 1, GL_FALSE, &P[0][0]);
         glUniformMatrix4fv(prog_moon->getUniform("V"), 1, GL_FALSE, &V[0][0]);
         M = mat4(1);
-        mat4 Ryz = rotate(mat4(1), ang, vec3(0, 1, 1));
+		static float ang_moon = 0.;
+		ang_moon += sin(frametime );
+        mat4 Ryz = rotate(mat4(1), ang_moon, vec3(0, 1, 1));
         M = earthMatrix * Ryz * translate(mat4(1), vec3(2., 0, 0)) * Ry * scale(mat4(1), vec3(0.27));
         vec3 moonPos = vec3(M[3]);
 //        M *= ;
         glUniformMatrix4fv(prog_moon->getUniform("M"), 1, GL_FALSE, &M[0][0]);
         glUniformMatrix4fv(prog_moon->getUniform("Ry"), 1, GL_FALSE, &Ry[0][0]);
+		lightpos.w = 0;
+		glUniform4fv(prog_moon->getUniform("lightpos"), 1, &lightpos.x);
+		colordot = vec3(1);
+		glUniform3fv(prog_moon->getUniform("colordot"), 1, &colordot.x);
+		glUniform2fv(prog_moon->getUniform("bi_star_facts"), 1,&bi_star_facts.x);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, Texture_moon);
         glActiveTexture(GL_TEXTURE1);
@@ -847,20 +901,7 @@ public:
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         prog_moon->unbind();
 
-        prog_gw_source->bind();
-        glUniformMatrix4fv(prog_gw_source->getUniform("P"), 1, GL_FALSE, &P[0][0]);
-        glUniformMatrix4fv(prog_gw_source->getUniform("V"), 1, GL_FALSE, &V[0][0]);
-        M = mat4(1);
-        mat4 transM = translate(mat4(1), vec3(0.,0.,0.));
-        M = transM * scale(mat4(1), vec3(.1,.1,.1));
-        glUniformMatrix4fv(prog_gw_source->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-//        glUniform3fv(prog_earth->getUniform("campos"), 1, &cam_.pos[0]);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, Texture_sun);
-        
-        shape_gw_source_->draw(prog_gw_source, false);
-        prog_gw_source->unbind();
-        
+
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         
@@ -879,6 +920,7 @@ public:
         glUniform3fv(prog_grid_x->getUniform("SpherePos"), 1, &moveSphere[0]);
         glUniform3fv(prog_grid_x->getUniform("MoonPos"), 1, &moonPos[0]);
         glUniform1f(prog_grid_x->getUniform("earthScale"), earthScale);
+		glUniform2fv(prog_grid_x->getUniform("bi_star_facts"), 1,&bi_star_facts.x);
         glBindVertexArray(VAOX);
         glDrawArrays(GL_LINES, 0, grid_vertices_size);
         prog_grid_x->unbind();
@@ -896,6 +938,7 @@ public:
         glUniform3fv(prog_grid_y->getUniform("SpherePos"), 1, &moveSphere[0]);
         glUniform3fv(prog_grid_y->getUniform("MoonPos"), 1, &moonPos[0]);
         glUniform1f(prog_grid_y->getUniform("earthScale"), earthScale);
+		glUniform2fv(prog_grid_y->getUniform("bi_star_facts"), 1, &bi_star_facts.x);
         glBindVertexArray(VAOY);
         glDrawArrays(GL_LINES, 0, grid_vertices_size);
         prog_grid_y->unbind();
@@ -913,21 +956,27 @@ public:
         glUniform3fv(prog_grid_z->getUniform("SpherePos"), 1, &moveSphere[0]);
         glUniform3fv(prog_grid_z->getUniform("MoonPos"), 1, &moonPos[0]);
         glUniform1f(prog_grid_z->getUniform("earthScale"), earthScale);
+		glUniform2fv(prog_grid_z->getUniform("bi_star_facts"), 1, &bi_star_facts.x);
         glBindVertexArray(VAOZ);
         glDrawArrays(GL_LINES, 0, grid_vertices_size);
         prog_grid_z->unbind();
 
-		float handScale = .1f;
+		float handScale = 0.008f;
 		prog_hand_left->bind();
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, Texture_marble);
 		glUniformMatrix4fv(prog_hand_left->getUniform("P"), 1, GL_FALSE, &P[0][0]);
 		glUniformMatrix4fv(prog_hand_left->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+		lightpos.w = 0;
+		glUniform4fv(prog_hand_left->getUniform("lightpos"), 1, &lightpos.x);
+		colordot = vec3(1);
+		glUniform3fv(prog_hand_left->getUniform("colordot"), 1, &colordot.x);
+
 		M = mat4(1);
 		M = translate(mat4(1), HandPosLeft) * scale(mat4(1), vec3(handScale));
 		glUniformMatrix4fv(prog_hand_left->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 
-		shape_hand_left->draw(prog_hand_left, false);
+		// shape_hand_left->draw(prog_hand_left, false);
 		prog_hand_left->unbind();
 
 		prog_hand_right->bind();
@@ -935,8 +984,17 @@ public:
 		glBindTexture(GL_TEXTURE_2D, Texture_marble);
 		glUniformMatrix4fv(prog_hand_right->getUniform("P"), 1, GL_FALSE, &P[0][0]);
 		glUniformMatrix4fv(prog_hand_right->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+		lightpos.w = 0;
+		//glUniform4fv(prog_hand_right->getUniform("lightpos"), 1, &lightpos.x);
+		colordot = vec3(1);
+		glUniform3fv(prog_hand_right->getUniform("colordot"), 1, &colordot.x);
+
 		M = mat4(1);
-		M = translate(mat4(1), HandPosRight) * scale(mat4(1), vec3(handScale));
+		// TODO: find actual values for proper translation to "ingame hmd space"
+		vec3 transVec = vec3(-2.1f, -1.1f, 1.9f);// * 1.f/handScale;
+		M = translate(mat4(1), HandPosRight) * translate(mat4(1), transVec) * scale(mat4(1), vec3(handScale));
+		//M = translate(mat4(1), vec3(-1.5f, 0.f, 1.f));
+		//cout << "POS "; printVec(vec3(M[3])); cout << " trans: "; printVec(transVec); cout << " and diff "; printVec(vec3(M[3]) - transVec);
 		glUniformMatrix4fv(prog_hand_right->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 
 		shape_hand_right->draw(prog_hand_right, false);
@@ -973,13 +1031,12 @@ public:
         glGenerateMipmap(GL_TEXTURE_2D);
     }
     void render_postproc() // aka render to framebuffer
-        {
-        
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            /*glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textarget, 0);
-            GLenum buffers[] = { GL_COLOR_ATTACHMENT0 };
-            glDrawBuffers(1, buffers);
-            */
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        /*glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textarget, 0);
+        GLenum buffers[] = { GL_COLOR_ATTACHMENT0 };
+        glDrawBuffers(1, buffers);
+        */
         glClearColor(1.0, 0.0, 0.0, 1.0);
         int width, height;
         glfwGetFramebufferSize(windowManager->getHandle(), &width, &height);
@@ -1032,7 +1089,7 @@ int main(int argc, char **argv)
     // Initialize scene.
     application->init(resourceDir);
 	application->initGeom();
-	vrapp->init_buffers("../resources/shaders");
+	vrapp->init_buffers("../resources/shaders", MSAAFACT);
 
     // Loop until the user closes the window.
     while(! glfwWindowShouldClose(windowManager->getHandle()))

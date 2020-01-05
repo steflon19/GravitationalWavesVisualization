@@ -4,8 +4,9 @@
 
 
 //*******************************************************************************************************************************************************
-bool OpenVRApplication::init_buffers(string resourceDirectory)
+bool OpenVRApplication::init_buffers(string resourceDirectory, int msaa_fact)
 {
+		msaa = msaa_fact;
 	//mesh first:
 	//init rectangle mesh (2 triangles) for the post processing
 	glGenVertexArrays(1, &FBOvao);
@@ -38,8 +39,10 @@ bool OpenVRApplication::init_buffers(string resourceDirectory)
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
+	float msaa_local = msaa;
 	for (int i = 0; i < 4; i++)
 	{
+		if (i > 1)	msaa_local = 1;
 		//RGBA8 2D texture, 24 bit depth texture, 256x256
 		glGenTextures(1, &FBOtexture[i]);
 		glBindTexture(GL_TEXTURE_2D, FBOtexture[i]);
@@ -49,7 +52,7 @@ bool OpenVRApplication::init_buffers(string resourceDirectory)
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		//NULL means reserve texture memory, but texels are undefined
 		//**** Tell OpenGL to reserve level 0
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, rtWidth, rtHeight, 0, GL_BGRA, GL_UNSIGNED_BYTE, NULL);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, rtWidth* msaa_local, rtHeight* msaa_local, 0, GL_BGRA, GL_UNSIGNED_BYTE, NULL);
 		//You must reserve memory for other mipmaps levels as well either by making a series of calls to
 		//glTexImage2D or use glGenerateMipmapEXT(GL_TEXTURE_2D).
 		//Here, we'll use :
@@ -62,7 +65,7 @@ bool OpenVRApplication::init_buffers(string resourceDirectory)
 		{
 			glGenRenderbuffers(1, &FBOdepth[i]);
 			glBindRenderbuffer(GL_RENDERBUFFER, FBOdepth[i]);
-			glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, rtWidth, rtHeight);//1590,1893
+			glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, rtWidth* msaa_local, rtHeight* msaa_local);//1590,1893
 			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, FBOdepth[i]);
 		}
 
@@ -329,6 +332,8 @@ bool OpenVRApplication::GetDigitalActionRisingEdge(vr::VRActionHandle_t action, 
 }
 OpenVRApplication::OpenVRApplication()
 {
+	hmd = NULL;
+
 	if (!hmdIsPresent())
 	{
 		//throw std::runtime_error("Error : HMD not detected on the system");
@@ -486,9 +491,9 @@ void OpenVRApplication::render_to_FBO(int selectFBO, void(*renderfunction)(int, 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	// Get current frame buffer size.
 	float aspect = rtWidth / (float)rtHeight;
-	glViewport(0, 0, rtWidth, rtHeight);
+	glViewport(0, 0, rtWidth*msaa, rtHeight * msaa);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	renderfunction(rtWidth, rtHeight, TR);
+	renderfunction(rtWidth * msaa, rtHeight * msaa, TR);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glBindTexture(GL_TEXTURE_2D, FBOtexture[selectFBO]);
 	glGenerateMipmap(GL_TEXTURE_2D);

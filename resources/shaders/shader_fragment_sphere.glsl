@@ -4,18 +4,26 @@ in vec3 vertex_normal;
 in vec3 vertex_pos;
 in vec2 vertex_tex;
 in vec3 frag_pos;
-//uniform vec3 campos;
+uniform vec4 lightpos;
+uniform vec3 colordot;
+
 
 uniform sampler2D tex_sphere;
 
 void main()
 {
 vec3 n = normalize(vertex_normal);
-vec3 lp=vec3(-10,2,-10);
-vec3 ld = normalize(vertex_pos - lp);
+
+vec3 ld = normalize(lightpos.xyz - vertex_pos);
 float diffuse = dot(n,ld);
 
+if(lightpos.w>0.5) 
+	diffuse = 1;
+
 color = texture(tex_sphere, vertex_tex) * diffuse;
+color.r = color.r * colordot.r;
+color.g = color.g * colordot.g;
+color.b = color.b * colordot.b;
 color.a = 1;//0.2;
  
 // "cut"  half of the sphere away

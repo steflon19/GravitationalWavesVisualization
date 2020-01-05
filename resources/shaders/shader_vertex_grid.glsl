@@ -13,7 +13,7 @@ out vec3 vertex_pos;
 out vec3 camvertex_pos;
 out vec3 scolor;
 uniform sampler2D tex2;
-
+uniform vec2 bi_star_facts;
 vec4 getAttractedPosition() {
     float maxDistance = 5.;
     float minDistance = 0.02;
@@ -65,13 +65,14 @@ void main()
     //tpos.z*=-1;
     
     // 5 would be the "correct" gridSize value, but because a turned square "repeats" around the edged this can be avoided by "scaling" the texture->increasing the divisor here. hackidacki
-    tpos/=5;
+    tpos/= 5 * bi_star_facts.x;
     tpos.xz += vec2(1,1);
     //tpos/=1.0;
     vec4 spiralcolor = texture(tex2, tpos.xz * 0.5);
 
 	// spiralcolor = vec4(0);
-    float gw_force = spiralcolor.r;
+	float amplitudefact = bi_star_facts.x*bi_star_facts.y;
+    float gw_force = spiralcolor.r*amplitudefact;
     
     vec3 normVertPos = normalize(vertPos);
     float f = dot(normalize(vec2(length(normVertPos.xz), normVertPos.y)), vec2(1,0));
