@@ -274,12 +274,16 @@ vr::HmdVector3_t OpenVRApplication::GetControllerPos(int hand_type) {
 		return vr::HmdVector3_t();
 
 	if (pC->hand == hand_type)
+		// TODO: improve duplicate code test.
+	{
 		return pC->pos;
+	}
 	else {
 		pC = &(controllers[1]);
 
-		if (pC->hand == hand_type)
+		if (pC->hand == hand_type) {
 			return pC->pos;
+		}
 		else
 			return vr::HmdVector3_t();
 	}
@@ -346,7 +350,7 @@ OpenVRApplication::OpenVRApplication()
 		std::cout << "Error : OpenVR Runtime not detected on the system" << std::endl;
 	}
 
-	OpenVRApplication::initVR();
+	//OpenVRApplication::initVR();
 
 	if (!hmd)
 	{

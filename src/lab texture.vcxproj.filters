@@ -11,6 +11,7 @@
     <ClCompile Include="MatrixStack.cpp" />
     <ClCompile Include="Shape.cpp" />
     <ClCompile Include="OpenVRclass.cpp" />
+    <ClCompile Include="fonts.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Program.h" />
@@ -21,6 +22,7 @@
     <ClInclude Include="tiny_obj_loader.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="OpenVRclass.h" />
+    <ClInclude Include="fonts.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="ext">

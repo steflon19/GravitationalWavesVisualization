@@ -1,9 +1,10 @@
 #version 330 core
 layout(location = 0) in vec3 vertPos;
 
-
 uniform vec3 SpherePos;
 uniform vec3 MoonPos;
+uniform vec3 BPosOne;
+uniform vec3 BPosTwo;
 uniform mat4 P;
 uniform mat4 V;
 uniform mat4 M;
@@ -15,9 +16,6 @@ out vec3 scolor;
 uniform sampler2D tex2;
 uniform vec2 bi_star_facts;
 vec4 getAttractedPosition() {
-    float maxDistance = 5.;
-    float minDistance = 0.02;
-    float earthMass = 1;
     
     vec4 pos = M * vec4(vertPos,1);
     vec3 dir = SpherePos - pos.xyz;
@@ -41,11 +39,23 @@ vec4 getAttractedPositionMoon(vec4 npos) {
     vec3 dir = MoonPos - pos.xyz;
     float d = length(dir);
     
-    // TODO: improve formula for the force to actually represent proper gravitational force distribution
     float a = 0.000005;
     float force = (a) / pow(d,2);
     force = pow(force, 5.5/10.);
     pos.xyz = clamp(pos.xyz + normalize(dir) * force, pos.xyz, (MoonPos-normalize(dir)*(earthScale*0.27)));
+    
+    return pos;
+}
+
+vec4 getAttractedPositionBinary(vec4 gpos, vec3 bpos) {
+    vec4 pos = M * gpos;
+    vec3 dir = bpos - pos.xyz;
+    float d = length(dir);
+    
+    float a = 0.0001;
+    float force = (a) / pow(d,2);
+    force = pow(force, 5.5/10.);
+    pos.xyz = clamp(pos.xyz + normalize(dir) * force, pos.xyz, (bpos-normalize(dir)*(earthScale*0.02)));
     
     return pos;
 }
@@ -55,6 +65,8 @@ void main()
     //vec3 pulledPos = vertPos * distance(vertPos, SpherePos);
     vec4 attractedPosition = getAttractedPosition();
     attractedPosition = getAttractedPositionMoon(attractedPosition);
+	attractedPosition = getAttractedPositionBinary(attractedPosition, BPosOne);
+	attractedPosition = getAttractedPositionBinary(attractedPosition, BPosTwo);
     vec4 tpos =  Ry * M * vec4(vertPos, 1.0);
     vertex_pos = (M * vec4(vertPos, 1.0)).xyz; // Rotate this by 90° ??
     camvertex_pos = vec3(V * attractedPosition);

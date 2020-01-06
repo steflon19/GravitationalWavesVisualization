@@ -13,6 +13,7 @@ CPE/CSC 471 Lab base code Wood/Dunn/Eckhardt
 #include "MatrixStack.h"
 #include "OpenVRclass.h"
 
+#include "fonts.h"
 #include "WindowManager.h"
 #include "Shape.h"
 // value_ptr for glm
@@ -26,7 +27,6 @@ using namespace glm;
 #define BYTE bitset<8>
 #endif
 #define MSAAFACT 2
-// TODO: ^get msaa to openVR
 
 double get_last_elapsed_time()
 {
@@ -92,6 +92,8 @@ public:
         return R_X * R_Y * T;
     }
 };
+
+bmpfont *font = new bmpfont();
 
 class Application : public EventCallbacks
 {
@@ -693,15 +695,15 @@ public:
         
         initProgram(prog_grid_x,
                     vector<string>({"/shader_vertex_grid.glsl", "/shader_fragment_grid.glsl", "/shader_geometry_x.glsl"}),
-                    vector<string>({"P", "V", "M", "Ry","SpherePos", "MoonPos", "earthScale","bi_star_facts" }));
+                    vector<string>({"P", "V", "M", "Ry","SpherePos", "MoonPos", "BPosOne", "BPosTwo", "earthScale","bi_star_facts" }));
         
         initProgram(prog_grid_y,
                     vector<string>({"/shader_vertex_grid.glsl", "/shader_fragment_grid.glsl", "/shader_geometry_y.glsl"}),
-                    vector<string>({"P", "V", "M", "Ry","SpherePos", "MoonPos", "earthScale","bi_star_facts" }));
+                    vector<string>({"P", "V", "M", "Ry","SpherePos", "MoonPos", "BPosOne", "BPosTwo", "earthScale","bi_star_facts" }));
         
         initProgram(prog_grid_z,
                     vector<string>({"/shader_vertex_grid.glsl", "/shader_fragment_grid.glsl", "/shader_geometry_z.glsl"}),
-                    vector<string>({"P", "V", "M", "Ry","SpherePos", "MoonPos", "earthScale","bi_star_facts" }));
+                    vector<string>({"P", "V", "M", "Ry","SpherePos", "MoonPos", "BPosOne", "BPosTwo", "earthScale","bi_star_facts" }));
     
     
         initProgram(prog_earth,
@@ -726,9 +728,9 @@ public:
 
                 
         initProgram(prog_gw_source,
-                    vector<string>({"/shader_vertex_sphere.glsl", "/shader_fragment_sphere.glsl"}),
-                    vector<string>({"P", "V", "M","lightpos" ,"colordot"  }),
-                    vector<string>({"vertPos","vertNor", "vertTex"}));
+            vector<string>({"/shader_vertex_sphere.glsl", "/shader_fragment_sphere.glsl"}),
+            vector<string>({"P", "V", "M","lightpos" ,"colordot"  }),
+            vector<string>({"vertPos","vertNor", "vertTex"}));
 
 
 //        initProgram(prog_box_DEBUG,
@@ -811,6 +813,7 @@ public:
 		M = mat4(1);
 		mat4 transM = translate(mat4(1), vec3(bi_star_distance*0.5,0,0));
 		M = Ry_bistars * transM * scale(mat4(1), vec3(.02, .02, 0.02));
+		vec3 bStarOne = vec3(M[3]);
 		glUniformMatrix4fv(prog_gw_source->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		lightpos.w = 1;
 		glUniform4fv(prog_gw_source->getUniform("lightpos"), 1, &lightpos.x);
@@ -822,6 +825,7 @@ public:
 		//star 2:
 		transM = translate(mat4(1), vec3(-bi_star_distance * 0.5, 0, 0));
 		M = Ry_bistars *transM * scale(mat4(1), vec3(.02, .02, 0.02));
+		vec3 bStarTwo = vec3(M[3]);
 		glUniformMatrix4fv(prog_gw_source->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		colordot = vec3(1.1, 1.9, 1.0);
 		glUniform3fv(prog_gw_source->getUniform("colordot"), 1, &colordot.x);
@@ -918,7 +922,9 @@ public:
         glUniformMatrix4fv(prog_grid_x->getUniform("M"), 1, GL_FALSE, &M[0][0]);
         glUniformMatrix4fv(prog_grid_x->getUniform("Ry"), 1, GL_FALSE, &Ry[0][0]);
         glUniform3fv(prog_grid_x->getUniform("SpherePos"), 1, &moveSphere[0]);
-        glUniform3fv(prog_grid_x->getUniform("MoonPos"), 1, &moonPos[0]);
+		glUniform3fv(prog_grid_x->getUniform("MoonPos"), 1, &moonPos[0]);
+		glUniform3fv(prog_grid_x->getUniform("BPosOne"), 1, &bStarOne[0]);
+		glUniform3fv(prog_grid_x->getUniform("BPosTwo"), 1, &bStarTwo[0]);
         glUniform1f(prog_grid_x->getUniform("earthScale"), earthScale);
 		glUniform2fv(prog_grid_x->getUniform("bi_star_facts"), 1,&bi_star_facts.x);
         glBindVertexArray(VAOX);
@@ -985,14 +991,19 @@ public:
 		glUniformMatrix4fv(prog_hand_right->getUniform("P"), 1, GL_FALSE, &P[0][0]);
 		glUniformMatrix4fv(prog_hand_right->getUniform("V"), 1, GL_FALSE, &V[0][0]);
 		lightpos.w = 0;
-		//glUniform4fv(prog_hand_right->getUniform("lightpos"), 1, &lightpos.x);
+		glUniform4fv(prog_hand_right->getUniform("lightpos"), 1, &lightpos.x);
 		colordot = vec3(1);
 		glUniform3fv(prog_hand_right->getUniform("colordot"), 1, &colordot.x);
 
 		M = mat4(1);
 		// TODO: find actual values for proper translation to "ingame hmd space"
+		// pos = glm::vec3(1.5, -0., -0.8);
 		vec3 transVec = vec3(-2.1f, -1.1f, 1.9f);// * 1.f/handScale;
-		M = translate(mat4(1), HandPosRight) * translate(mat4(1), transVec) * scale(mat4(1), vec3(handScale));
+		M = translate(mat4(1), HandPosRight * (1.f) + transVec);// *translate(mat4(1), transVec);
+		M *= scale(mat4(1), vec3(handScale));
+
+		vec3 handPos = vec3((V * M)[3]);
+
 		//M = translate(mat4(1), vec3(-1.5f, 0.f, 1.f));
 		//cout << "POS "; printVec(vec3(M[3])); cout << " trans: "; printVec(transVec); cout << " and diff "; printVec(vec3(M[3]) - transVec);
 		glUniformMatrix4fv(prog_hand_right->getUniform("M"), 1, GL_FALSE, &M[0][0]);
@@ -1000,7 +1011,12 @@ public:
 		shape_hand_right->draw(prog_hand_right, false);
 		prog_hand_right->unbind();
 
-
+		//font->draw(M[3][0] + 0.2f, M[3][1], M[3][2], "HMMMMM??", 1.f, 1.f, 1.f);
+		
+		float amplitude = 0.00f;
+		// roundf(amplitude * 100.f) / 100.f
+		font->draw(0.35f, 0.35f, 0.3f, (string)"Amplitude: " + to_string(amplitude), 1.f, 1.f, 1.f);
+		font->draw();
 		//printVec(HandPosOne, "HandPos 1");
 		//printVec(HandPosTwo, "HandPos 2");
 
@@ -1046,7 +1062,8 @@ public:
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         prog_post_proc->bind();
-        glActiveTexture(GL_TEXTURE0);        glBindTexture(GL_TEXTURE_2D, FBO_MSAA_color);
+        glActiveTexture(GL_TEXTURE0);        
+		glBindTexture(GL_TEXTURE_2D, FBO_MSAA_color);
         glBindVertexArray(VertexArrayIDBox);
         glDrawArrays(GL_TRIANGLES, 0, 6);
         prog_post_proc->unbind();
@@ -1079,6 +1096,10 @@ int main(int argc, char **argv)
 	vrapp = new OpenVRApplication();
 	windowManager->init(vrapp->get_render_width(), vrapp->get_render_height());
     //windowManager->init(1920, 1080);
+
+	font->init();
+	// need this??
+	font->set_font_size(.08f);
 
 	windowManager->setEventCallbacks(application);
 	application->windowManager = windowManager;
