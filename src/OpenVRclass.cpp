@@ -381,7 +381,17 @@ vr::TrackedDevicePose_t OpenVRApplication::submitFramesOpenGL(int leftEyeTex, in
 
 	vr::TrackedDevicePose_t trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 	vr::VRCompositor()->WaitGetPoses(trackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0);
-
+	//	vr::VRCompositor()->GetLastPoses(trackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0);
+	// Change Begin 
+	// for somebody asking for the default figure out the time from now to photons. 
+	float fSecondsSinceLastVsync;
+	hmd->GetTimeSinceLastVsync(&fSecondsSinceLastVsync, NULL);
+	float fDisplayFrequency = hmd->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float);
+	float fFrameDuration = 1.f / fDisplayFrequency;
+	float fVsyncToPhotons = hmd->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SecondsFromVsyncToPhotons_Float);
+	float fPredictedSecondsFromNow = fFrameDuration * 2 - fSecondsSinceLastVsync + fVsyncToPhotons;
+	//hmd->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, fPredictedSecondsFromNow, trackedDevicePose, vr::k_unMaxTrackedDeviceCount);
+	// Change END
 
 	///\todo the documentation on this is completely unclear.  I have no idea which one is correct...
 	/// seems to imply that we always want Gamma in opengl because linear is for framebuffers that have been
@@ -427,7 +437,7 @@ void OpenVRApplication::initVR()
 
 }
 //*******************************************************************************************************************************************************
-vr::TrackedDevicePose_t  OpenVRApplication::render_to_VR(void(*renderfunction)(int, int, glm::mat4))
+vr::TrackedDevicePose_t  OpenVRApplication::render_to_VR(void(*renderfunction)(int, int, glm::mat4, int, bool))
 {
 	render_to_FBO(LEFTEYE, renderfunction);
 	if (hmd)
@@ -458,11 +468,13 @@ void OpenVRApplication::render_to_screen(int texture_num)
 	prog.unbind();
 }
 //*******************************************************************************************************************************************************
-void OpenVRApplication::render_to_FBO(int selectFBO, void(*renderfunction)(int, int, glm::mat4))
+void OpenVRApplication::render_to_FBO(int selectFBO, void(*renderfunction)(int, int, glm::mat4, int, bool))
 {
 	mat4 TR = mat4(1);
+	bool VRon = false;
 	if (hmd)
 	{
+		VRon = true;
 		for (int i = 0; i < 4; i++)
 			for (int j = 0; j < 4; j++)
 				TR[i][j] = pose.mDeviceToAbsoluteTracking.m[i][j];
@@ -480,6 +492,8 @@ void OpenVRApplication::render_to_FBO(int selectFBO, void(*renderfunction)(int, 
 
 	//trackingM.set_transform_matrix
 	TR[0][3] = TR[1][3] = TR[2][3] = 0;
+	TR[3][0] = TR[3][1] = TR[3][2] = 0;
+
 	TR[3][3] = 1;
 	mat4 tTR = transpose(TR);
 
@@ -490,14 +504,30 @@ void OpenVRApplication::render_to_FBO(int selectFBO, void(*renderfunction)(int, 
 
 	mat4 viewM = vT * TR;
 
+	/*
+	pre:
+zeigen: transversal, longitudinal wellen
+VR tasks:
+wellen beobachten
+bi stern system welche wellen erzeugen beobachten
+wellen beobachten bei versch abst und frequen
+messen auf verschiedenen punkten in rot ebene und darueber/darunter
+post:
+1. welche wellenart
+2. abstrahlung
+3. amplitudenabh von star-abst und frequ?
+4. auf einem punkt?
+	*/
+
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO[selectFBO]);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	// Get current frame buffer size.
 	float aspect = rtWidth / (float)rtHeight;
-	glViewport(0, 0, rtWidth*msaa, rtHeight * msaa);
+	glViewport(0, 0, rtWidth * msaa, rtHeight * msaa);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	renderfunction(rtWidth * msaa, rtHeight * msaa, TR);
+
+	renderfunction(rtWidth * msaa, rtHeight * msaa, viewM, selectFBO, VRon);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glBindTexture(GL_TEXTURE_2D, FBOtexture[selectFBO]);
 	glGenerateMipmap(GL_TEXTURE_2D);

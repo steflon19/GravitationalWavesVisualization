@@ -81,8 +81,7 @@ enum emeye :int { LEFTEYE = 0, RIGHTEYE = 1, LEFTPOST = 2, RIGHTPOST = 3 };
 class OpenVRApplication
 {
 private:
-	float eyeconvergence = 0.1;		// convergence point
-	float eyedistance = 0.08;		//3D intesity effec
+	
 	Program prog;					//shader program for the postprocessing stages
 	vr::TrackedDevicePose_t pose;	//matrix from the headset tracking
 	vr::VRActionSetHandle_t m_actionsetDemo = vr::k_ulInvalidActionSetHandle;
@@ -110,7 +109,7 @@ private:
 
 	int controller_index = -1;
 
-	void render_to_FBO(int selectFBO, void(*renderfunction)(int, int, glm::mat4));
+	void render_to_FBO(int selectFBO, void(*renderfunction)(int, int, glm::mat4, int, bool));
 	unsigned int FBO[4], FBOtexture[4], FBOdepth[2];
 	unsigned int  FBOvao, FBOvbopos, FBOvbotex;
 	void render_to_offsetFBO(int selectFBO);
@@ -125,6 +124,17 @@ private:
 	void handleVRError(vr::EVRInitError err);
 	void initVR();
 public:
+	float eyeconvergence = 0.03;		// convergence point
+	float eyedistance = 0.15;		//3D intesity effec
+	bool get_projection_matrix(vr::Hmd_Eye eEye, float nearZ, float farZ, mat4 &P)
+	{
+		if (!hmd) return false;
+		vr::HmdMatrix44_t m = hmd->GetProjectionMatrix(eEye, nearZ, farZ);
+		for (int i = 0; i < 4; i++)
+			for (int j = 0; j < 4; j++)
+				P[j][i] = m.m[i][j];
+		return true;
+	}
 	int get_render_width() { return rtWidth; }
 	int get_render_height() { return rtHeight; }
 	void PrintTrackedDevices();
@@ -145,7 +155,7 @@ public:
 			hmd = NULL;
 		}
 	}
-	vr::TrackedDevicePose_t  render_to_VR(void(*renderfunction)(int, int, glm::mat4));
+	vr::TrackedDevicePose_t  render_to_VR(void(*renderfunction)(int, int, glm::mat4, int, bool));
 	unsigned int get_FBO_texture(int i) { if (i < 0 || i>3)return 0; return FBOtexture[i]; }
 	void render_to_screen(int texture_num);
 

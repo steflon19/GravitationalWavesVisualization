@@ -27,7 +27,7 @@ using namespace glm;
 #define BYTE bitset<8>
 #endif
 #define MSAAFACT 2
-
+OpenVRApplication* vrapp = NULL;
 double get_last_elapsed_time()
 {
     static double lasttime = glfwGetTime();
@@ -109,7 +109,7 @@ private:
 	string resourceDir = "";
 	string shaderDir = "";
 
-	OpenVRApplication* vrapp = NULL;
+	
 
 public:
     WindowManager * windowManager = nullptr;
@@ -138,6 +138,7 @@ public:
     GLuint Texture_grid, Texture_earth, Texture_sun, Texture_spiral, Texture_moon, Texture_marble;
     GLuint cubemapTexture, FBO_MSAA, FBO_MSAA_depth, FBO_MSAA_color, VertexArrayIDBox, VertexBufferIDBox;
 
+	bool paused = false;
 
 	void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 		{
@@ -269,6 +270,12 @@ public:
 		if (key == GLFW_KEY_H && action == GLFW_RELEASE) { bi_star_facts.y += 0.1; cout << bi_star_facts.y << endl;			}
 		if (key == GLFW_KEY_J && action == GLFW_RELEASE) { bi_star_facts.y -= 0.1; cout << bi_star_facts.y << endl;			}
 
+		if (key == GLFW_KEY_1 && action == GLFW_RELEASE) { vrapp->eyeconvergence += 0.01; cout << vrapp->eyeconvergence << endl; }
+		if (key == GLFW_KEY_2 && action == GLFW_RELEASE) { vrapp->eyeconvergence -= 0.01;	cout << vrapp->eyeconvergence << endl; }
+		if (key == GLFW_KEY_3 && action == GLFW_RELEASE) { vrapp->eyedistance += 0.01; cout << vrapp->eyedistance << endl; }
+		if (key == GLFW_KEY_4 && action == GLFW_RELEASE) { vrapp->eyedistance -= 0.01; cout << vrapp->eyedistance << endl; }
+
+		if (key == GLFW_KEY_P && action == GLFW_RELEASE) { paused = !paused; cout << "Sim " << (paused ? "Paused!" : "Resumed!") << endl; }
 
     }
 
@@ -760,7 +767,7 @@ public:
     will actually issue the commands to draw any geometry you have set up to
     draw
     ********/
-    void render(int width, int height, mat4 VRheadmatrix)
+    void render(int width, int height, glm::mat4 VRheadmatrix, int eye, bool VRon)
     {
 
 		vec4 lightpos = vec4(0, 0, 0, 1);
@@ -795,9 +802,20 @@ public:
         // Apply orthographic projection....
         P = glm::perspective((float)(PI / 4.), (float)(aspect), 0.1f, 1000.0f); //so much type casting... GLM metods are quite funny ones
 
+		vr::Hmd_Eye currenteye;
+		if (eye == LEFTEYE)
+			currenteye = vr::Eye_Left;
+		else
+			currenteye = vr::Eye_Right;
+		//cout << euler.x << "\t" << euler.y << "\t" << euler.z << endl;
+		if (!vrapp->get_projection_matrix(currenteye, 0.000001f, 4000.0f, P))
+			P = glm::perspective((float)(3.14159 / 4.), (float)((float)width / (float)height), 0.000001f, 4000.0f); //so much type casting... GLM metods are quite funny ones
+
         
         static float ang = 0.;
-        ang += sin(frametime* bi_star_facts.y);
+		if (!paused) {
+			ang += sin(frametime* bi_star_facts.y);
+		}
         mat4 Ry = rotate(mat4(1), ang, vec3(0, 1, 0));
 		float angle_offset = 0.0;
 		mat4 Ry_bistars = rotate(mat4(1), -ang * 0.5f + bi_star_angle_off, vec3(0, 1, 0));
@@ -895,7 +913,7 @@ public:
 		glUniform4fv(prog_moon->getUniform("lightpos"), 1, &lightpos.x);
 		colordot = vec3(1);
 		glUniform3fv(prog_moon->getUniform("colordot"), 1, &colordot.x);
-		glUniform2fv(prog_moon->getUniform("bi_star_facts"), 1,&bi_star_facts.x);
+		//glUniform2fv(prog_moon->getUniform("bi_star_facts"), 1,&bi_star_facts.x);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, Texture_moon);
         glActiveTexture(GL_TEXTURE1);
@@ -990,7 +1008,7 @@ public:
 		glBindTexture(GL_TEXTURE_2D, Texture_marble);
 		glUniformMatrix4fv(prog_hand_right->getUniform("P"), 1, GL_FALSE, &P[0][0]);
 		glUniformMatrix4fv(prog_hand_right->getUniform("V"), 1, GL_FALSE, &V[0][0]);
-		lightpos.w = 0;
+		lightpos.w = 1;
 		glUniform4fv(prog_hand_right->getUniform("lightpos"), 1, &lightpos.x);
 		colordot = vec3(1);
 		glUniform3fv(prog_hand_right->getUniform("colordot"), 1, &colordot.x);
@@ -998,7 +1016,7 @@ public:
 		M = mat4(1);
 		// TODO: find actual values for proper translation to "ingame hmd space"
 		// pos = glm::vec3(1.5, -0., -0.8);
-		vec3 transVec = vec3(-2.1f, -1.1f, 1.9f);// * 1.f/handScale;
+		vec3 transVec = vec3(-1.5f, -1.f, 0.5f);// * 1.f/handScale;
 		M = translate(mat4(1), HandPosRight * (1.f) + transVec);// *translate(mat4(1), transVec);
 		M *= scale(mat4(1), vec3(handScale));
 
@@ -1074,12 +1092,12 @@ public:
     //*************************************
 };
 Application* application = NULL; 
-OpenVRApplication* vrapp = NULL;
 
-void my_render(int width, int height, mat4 VRheadmatrix) {
-	application->render(width, height, VRheadmatrix);
+
+void my_render(int w, int h, glm::mat4 VRheadmatrix, int eye, bool VRon)
+{
+	application->render(w, h, VRheadmatrix, eye, VRon);
 }
-
 //******************************************************************************************
 int main(int argc, char **argv)
 {
@@ -1110,6 +1128,7 @@ int main(int argc, char **argv)
     // Initialize scene.
     application->init(resourceDir);
 	application->initGeom();
+	application->paused = false;
 	vrapp->init_buffers("../resources/shaders", MSAAFACT);
 
     // Loop until the user closes the window.
