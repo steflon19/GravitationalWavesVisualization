@@ -333,7 +333,7 @@ public:
         // generating the grid
         std::vector<vec3> grid_x, grid_y, grid_z;
         float step = 0.125/2;
-        float gridSize = 2.;
+        float gridSize = 3.;
         int numPoints = 10;
         float innerStep = step / (float)numPoints;
         // the grid is rendered as LINE_STRIP, therefore we always set pairs of points (a->b, b->c, etc..)
@@ -1004,6 +1004,12 @@ public:
 
 		vec3 handPos = vec3((V * M)[3]);
 
+		float amplitude = bi_star_facts.x * bi_star_facts.y;
+
+		float f = dot(normalize(vec2(length(vec2(handPos.x, handPos.z)), handPos.y)), vec2(1, 0));
+
+		amplitude *= f;
+
 		//M = translate(mat4(1), vec3(-1.5f, 0.f, 1.f));
 		//cout << "POS "; printVec(vec3(M[3])); cout << " trans: "; printVec(transVec); cout << " and diff "; printVec(vec3(M[3]) - transVec);
 		glUniformMatrix4fv(prog_hand_right->getUniform("M"), 1, GL_FALSE, &M[0][0]);
@@ -1013,12 +1019,9 @@ public:
 
 		//font->draw(M[3][0] + 0.2f, M[3][1], M[3][2], "HMMMMM??", 1.f, 1.f, 1.f);
 		
-		float amplitude = 0.00f;
 		// roundf(amplitude * 100.f) / 100.f
-		font->draw(0.35f, 0.35f, 0.3f, (string)"Amplitude: " + to_string(amplitude), 1.f, 1.f, 1.f);
+		font->draw(0.2f, 0.35f, 0.3f, (string)"Amplitude: " + to_string(amplitude), 1.f, 1.f, 1.f);
 		font->draw();
-		//printVec(HandPosOne, "HandPos 1");
-		//printVec(HandPosTwo, "HandPos 2");
 
 //        prog_box_DEBUG->bind();
 //        P = V = mat4(1);
@@ -1095,15 +1098,12 @@ int main(int argc, char **argv)
 	//VR Stuff
 	vrapp = new OpenVRApplication();
 	windowManager->init(vrapp->get_render_width(), vrapp->get_render_height());
-    //windowManager->init(1920, 1080);
 
 	font->init();
-	// need this??
 	font->set_font_size(.08f);
 
 	windowManager->setEventCallbacks(application);
 	application->windowManager = windowManager;
-
 
     /* This is the code that will likely change program to program as you
         may need to initialize or set up different data and state */
@@ -1116,8 +1116,6 @@ int main(int argc, char **argv)
     while(! glfwWindowShouldClose(windowManager->getHandle()))
     {
         // Render scene.
-        //application->render();
-        //application->render_postproc();
 		// 1 = left and 2 = right
 		vr::HmdVector3_t controllerPos = vrapp->GetControllerPos(1);
 		application->HandPosLeft = vec3(controllerPos.v[0], controllerPos.v[1], controllerPos.v[2]);
