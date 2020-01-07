@@ -1016,7 +1016,7 @@ public:
 		M = mat4(1);
 		// TODO: find actual values for proper translation to "ingame hmd space"
 		// pos = glm::vec3(1.5, -0., -0.8);
-		vec3 transVec = vec3(-1.5f, -1.f, 0.5f);// * 1.f/handScale;
+		vec3 transVec = vec3(-1.5f, -1.2f, 0.5f);// * 1.f/handScale;
 		M = translate(mat4(1), HandPosRight * (1.f) + transVec);// *translate(mat4(1), transVec);
 		M *= scale(mat4(1), vec3(handScale));
 

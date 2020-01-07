@@ -52,7 +52,7 @@ vec4 getAttractedPositionBinary(vec4 gpos, vec3 bpos) {
     vec3 dir = bpos - pos.xyz;
     float d = length(dir);
     
-    float a = 0.0001;
+    float a = 0.0003;
     float force = (a) / pow(d,2);
     force = pow(force, 5.5/10.);
     pos.xyz = clamp(pos.xyz + normalize(dir) * force, pos.xyz, (bpos-normalize(dir)*(earthScale*0.02)));
