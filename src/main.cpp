@@ -102,7 +102,9 @@ private:
 
     // sphere controls
     GLuint left_, right_, forward_, backward_, up_, down_;
-    float  earth_dir_x_, earth_dir_y_, earth_dir_z_;
+	float  earth_dir_x_, earth_dir_y_, earth_dir_z_;
+	vec3  hand_pos_left_;
+	vec3  hand_pos_right_;
     
     Camera cam_;
 
@@ -139,29 +141,32 @@ public:
     GLuint cubemapTexture, FBO_MSAA, FBO_MSAA_depth, FBO_MSAA_color, VertexArrayIDBox, VertexBufferIDBox;
 
 	bool paused = false;
+	bool manualMode = false;
 
 	void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 		{
 		if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-			{
+		{
 			glfwSetWindowShouldClose(window, GL_TRUE);
-			}
+		}
 
 		// utility
 		if (key == GLFW_KEY_R && action == GLFW_RELEASE) {
 			earth_dir_x_ = -1.5;
 			earth_dir_z_ = 0.2;
 			earth_dir_y_ = 0.;
-			}
+			hand_pos_left_ = vec3(-2.f, 0.f, 0.1f);
+			hand_pos_right_ = vec3(-1.f, 0.f, 0.1f);
+		}
 
 		if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS)
-			{
+		{
 			cam_.shift_active = 1;
-			}
+		}
 		if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_RELEASE)
-			{
+		{
 			cam_.shift_active = 0;
-			}
+		}
 
 		// CAMERA
 		// move left/right
@@ -218,9 +223,9 @@ public:
 
 		// Sphere
 		if (key == GLFW_KEY_LEFT && action == GLFW_PRESS)
-			{
+		{
 			left_ = 1;
-			}
+		}
 		if (key == GLFW_KEY_LEFT && action == GLFW_RELEASE)
 			{
 			left_ = 0;
@@ -276,8 +281,17 @@ public:
 		if (key == GLFW_KEY_4 && action == GLFW_RELEASE) { vrapp->eyedistance -= 0.01; cout << vrapp->eyedistance << endl; }
 
 		if (key == GLFW_KEY_P && action == GLFW_RELEASE) { paused = !paused; cout << "Sim " << (paused ? "Paused!" : "Resumed!") << endl; }
+		if (key == GLFW_KEY_M && action == GLFW_RELEASE) { switchSimulationMode(); }
 
     }
+
+	void switchSimulationMode() {
+
+		manualMode = !manualMode;
+
+		cout << "Simulation mode switched to: >>" << (manualMode? "<< Manual!" : "<< VR!") << endl;
+
+	}
 
     // callback for the mouse when clicked move the triangle when helper functions
     // written
@@ -681,6 +695,8 @@ public:
         earth_dir_x_ = -1.5;
         earth_dir_z_ = 0.2;
         earth_dir_y_ = 0.;
+		hand_pos_left_ = vec3(-2.f, 0.f, 0.2f);
+		hand_pos_right_ = vec3(-1.f, 0.f, 0.2f);
         // Set background color.
         glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
         // Enable z-buffer test.
@@ -856,23 +872,29 @@ public:
         glUniformMatrix4fv(prog_earth->getUniform("V"), 1, GL_FALSE, &V[0][0]);
         
         float advanceVal = 0.005;
-        if (left_ == 1) {
-            earth_dir_x_ -= advanceVal;
-        } else if (right_ == 1) {
-            earth_dir_x_ += advanceVal;
-        }
-        if (forward_ == 1) {
-            earth_dir_z_ -= advanceVal;
-        } else if (backward_ == 1) {
-            earth_dir_z_ += advanceVal;
-        }
-        if (up_ == 1) {
-            earth_dir_y_ += advanceVal;
-        } else if (down_ == 1) {
-            earth_dir_y_ -= advanceVal;
-        }
+		if (!manualMode)
+		{
+			if (left_ == 1) {
+				earth_dir_x_ -= advanceVal;
+			}
+			else if (right_ == 1) {
+				earth_dir_x_ += advanceVal;
+			}
+			if (forward_ == 1) {
+				earth_dir_z_ -= advanceVal;
+			}
+			else if (backward_ == 1) {
+				earth_dir_z_ += advanceVal;
+			}
+			if (up_ == 1) {
+				earth_dir_y_ += advanceVal;
+			}
+			else if (down_ == 1) {
+				earth_dir_y_ -= advanceVal;
+			}
+		}
         
-        vec3 moveSphere = vec3(earth_dir_x_, earth_dir_y_, earth_dir_z_-0.1);
+        vec3 moveSphere = vec3(earth_dir_x_, earth_dir_y_, earth_dir_z_);
         mat4 translateSphere = translate(mat4(1), moveSphere);
         float earthScale = 0.07;
         mat4 scaleM = scale(mat4(1), vec3(earthScale));
@@ -1016,8 +1038,31 @@ public:
 		M = mat4(1);
 		// TODO: find actual values for proper translation to "ingame hmd space"
 		// pos = glm::vec3(1.5, -0., -0.8);
-		vec3 transVec = vec3(-1.5f, -1.2f, 0.5f);// * 1.f/handScale;
-		M = translate(mat4(1), HandPosRight * (1.f) + transVec);// *translate(mat4(1), transVec);
+		if (!manualMode) {
+			vec3 transVec = vec3(-1.5f, -1.2f, 0.5f);// * 1.f/handScale;
+			M = translate(mat4(1), HandPosRight * (1.f) + transVec);// *translate(mat4(1), transVec);
+		}
+		else {
+			if (left_ == 1) {
+				hand_pos_right_.x -= advanceVal;
+			}
+			else if (right_ == 1) {
+				hand_pos_right_.x += advanceVal;
+			}
+			if (forward_ == 1) {
+				hand_pos_right_.z -= advanceVal;
+			}
+			else if (backward_ == 1) {
+				hand_pos_right_.z += advanceVal;
+			}
+			if (up_ == 1) {
+				hand_pos_right_.y += advanceVal;
+			}
+			else if (down_ == 1) {
+				hand_pos_right_.y -= advanceVal;
+			}
+			M = translate(mat4(1), hand_pos_right_);
+		}
 		M *= scale(mat4(1), vec3(handScale));
 
 		vec3 handPos = vec3((V * M)[3]);
@@ -1035,11 +1080,19 @@ public:
 		shape_hand_right->draw(prog_hand_right, false);
 		prog_hand_right->unbind();
 
-		//font->draw(M[3][0] + 0.2f, M[3][1], M[3][2], "HMMMMM??", 1.f, 1.f, 1.f);
-		
 		// roundf(amplitude * 100.f) / 100.f
-		font->draw(0.2f, 0.35f, 0.3f, (string)"Amplitude: " + to_string(amplitude), 1.f, 1.f, 1.f);
-		font->draw();
+		if (!manualMode) {
+			font->draw(0.2f, 0.35f, 0.3f, (string)"Amplitude: " + to_string(roundf(amplitude * 100.f) / 100.f), 1.f, 1.f, 1.f);
+			font->draw();
+		}
+		else {
+			vec3 handTextOffset = vec3(0.f, 0.f, 0.f);
+			vec4 screenpos = P * V * vec4(hand_pos_right_ + handTextOffset, 1);
+			screenpos.x /= screenpos.w;
+			screenpos.y /= screenpos.w;
+			font->draw(screenpos.x, screenpos.y + 0.05f, 0.3f, (string)"Ampl.: " + to_string(amplitude), 1.f, 1.f, 1.f);
+			font->draw();
+		}
 
 //        prog_box_DEBUG->bind();
 //        P = V = mat4(1);
