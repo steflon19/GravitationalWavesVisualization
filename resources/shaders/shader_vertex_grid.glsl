@@ -54,7 +54,7 @@ vec4 getAttractedPositionBinary(vec4 gpos, vec3 bpos) {
     vec3 dir = bpos - pos.xyz;
     float d = length(dir);
     
-    float a = 0.0003;
+    float a = 0.0001;
     float force = (a) / pow(d,2);
     force = pow(force, 5.5/10.);
     pos.xyz = clamp(pos.xyz + normalize(dir) * force, pos.xyz, (bpos-normalize(dir)*(earthScale*0.02)));
@@ -78,7 +78,7 @@ void main()
     //tpos -> texcoord
     //tpos.z*=-1;
     
-    // 5 would be the "correct" gridSize value, but because a turned square "repeats" around the edged this can be avoided by "scaling" the texture->increasing the divisor here. hackidacki
+    // 5 would be the "correct" gridSize value, but because a turned square "repeats" around the edged this can be avoided by "scaling" the texture->increasing the divisor here.
     tpos/= 5 * bi_star_facts.x;
     tpos.xz += vec2(1,1);
     //tpos/=1.0;

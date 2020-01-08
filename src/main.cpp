@@ -112,8 +112,8 @@ private:
     // sphere controls
     GLuint left_, right_, forward_, backward_, up_, down_;
 	float  earth_dir_x_, earth_dir_y_, earth_dir_z_;
-	vec3  hand_pos_left_;
-	vec3  hand_pos_right_;
+	vec3  manual_hand_pos_left_;
+	vec3  manual_hand_pos_right_;
     
     Camera cam_;
 
@@ -154,35 +154,35 @@ public:
 
 	ssbo_data ssbo_CPUMEM;
 	GLuint ssbo_GPU_id;
-	GLuint computeProgram;
-	void init_computeshader()
+	GLuint compute_shader_pid;
+	void initComputeShader()
 	{
 		GLSL::checkVersion();
 		//load the compute shader
 		std::string ShaderString = readFileAsString(shaderDir + "/shader_compute.glsl");
 		const char* shader = ShaderString.c_str();
-		GLuint computeShader = glCreateShader(GL_COMPUTE_SHADER);
-		glShaderSource(computeShader, 1, &shader, nullptr);
+		GLuint shader_compute = glCreateShader(GL_COMPUTE_SHADER);
+		glShaderSource(shader_compute, 1, &shader, nullptr);
 
 		GLint rc;
-		CHECKED_GL_CALL(glCompileShader(computeShader));
-		CHECKED_GL_CALL(glGetShaderiv(computeShader, GL_COMPILE_STATUS, &rc));
+		CHECKED_GL_CALL(glCompileShader(shader_compute));
+		CHECKED_GL_CALL(glGetShaderiv(shader_compute, GL_COMPILE_STATUS, &rc));
 		if (!rc)	//error compiling the shader file
 		{
-			GLSL::printShaderInfoLog(computeShader);
-			std::cout << "Error compiling fragment shader " << std::endl;
+			GLSL::printShaderInfoLog(shader_compute);
+			std::cout << "Error compiling compute shader " << std::endl;
 			exit(1);
 		}
 
-		computeProgram = glCreateProgram();
-		glAttachShader(computeProgram, computeShader);
-		glLinkProgram(computeProgram);
-		glUseProgram(computeProgram);
+		compute_shader_pid = glCreateProgram();
+		glAttachShader(compute_shader_pid, shader_compute);
+		glLinkProgram(compute_shader_pid);
+		glUseProgram(compute_shader_pid);
 
 		GLuint block_index = 0;
-		block_index = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		block_index = glGetProgramResourceIndex(compute_shader_pid, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		GLuint ssbo_binding_point_index = 2;
-		glShaderStorageBlockBinding(computeProgram, block_index, ssbo_binding_point_index);
+		glShaderStorageBlockBinding(compute_shader_pid, block_index, ssbo_binding_point_index);
 
 		for (int ii = 0; ii < SSBO_SIZE; ii++)
 		{
@@ -202,11 +202,11 @@ public:
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
 		
 		GLuint block_index = 0;
-		block_index = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		block_index = glGetProgramResourceIndex(compute_shader_pid, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		GLuint ssbo_binding_point_index = 0;
-		glShaderStorageBlockBinding(computeProgram, block_index, ssbo_binding_point_index);
+		glShaderStorageBlockBinding(compute_shader_pid, block_index, ssbo_binding_point_index);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
-		glUseProgram(computeProgram);
+		glUseProgram(compute_shader_pid);
 
 
 		glDispatchCompute((GLuint)SSBO_SIZE, (GLuint)1, 1);				//start compute shader
@@ -237,8 +237,8 @@ public:
 			earth_dir_x_ = -1.5;
 			earth_dir_z_ = 0.2;
 			earth_dir_y_ = 0.;
-			hand_pos_left_ = vec3(-2.f, 0.f, 0.1f);
-			hand_pos_right_ = vec3(-1.f, 0.f, 0.1f);
+			manual_hand_pos_left_ = vec3(-2.f, 0.f, 0.1f);
+			manual_hand_pos_right_ = vec3(-1.f, 0.f, 0.1f);
 		}
 
 		if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS)
@@ -364,7 +364,6 @@ public:
 
 		if (key == GLFW_KEY_P && action == GLFW_RELEASE) { paused = !paused; cout << "Sim " << (paused ? "Paused!" : "Resumed!") << endl; }
 		if (key == GLFW_KEY_M && action == GLFW_RELEASE) { switchSimulationMode(); }
-
     }
 
 	void switchSimulationMode() {
@@ -433,7 +432,7 @@ public:
     int grid_vertices_size;
 	void initGeom()
     {
-		init_computeshader();
+		initComputeShader();
         // generating the grid
         std::vector<vec3> grid_x, grid_y, grid_z;
         float step = 0.125/2;
@@ -588,7 +587,10 @@ public:
         glUniform1i(Tex2Location, 0);
         Tex2Location = glGetUniformLocation(prog_moon->pid, "tex_spiral");
         glUniform1i(Tex2Location, 1);
-        
+
+		/*glUseProgram(compute_shader_pid);
+		Tex2Location = glGetUniformLocation(compute_shader_pid, "tex_spiral");
+		glUniform1i(Tex2Location, 0);*/
         
         //texture sun
         str = resourceDir + "/sun.jpg";
@@ -776,8 +778,8 @@ public:
         earth_dir_x_ = -1.5;
         earth_dir_z_ = 0.2;
         earth_dir_y_ = 0.;
-		hand_pos_left_ = vec3(-2.f, 0.f, 0.2f);
-		hand_pos_right_ = vec3(-1.f, 0.f, 0.2f);
+		manual_hand_pos_left_ = vec3(-2.f, 0.f, 0.2f);
+		manual_hand_pos_right_ = vec3(-1.f, 0.f, 0.2f);
         // Set background color.
         glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
         // Enable z-buffer test.
@@ -865,8 +867,6 @@ public:
     {
 		for (int i = 0; i < SSBO_SIZE; i++)
 			ssbo_CPUMEM.io[i] = vec4(0, 0, 0, 0);
-		ssbo_CPUMEM.io[0] = vec4(-cam_.pos, 0);
-		computeShader();
 
 		vec4 lightpos = vec4(0, 0, 0, 1);
 		vec3 colordot = vec3(1);
@@ -1126,34 +1126,36 @@ public:
 		}
 		else {
 			if (left_ == 1) {
-				hand_pos_right_.x -= advanceVal;
+				manual_hand_pos_right_.x -= advanceVal;
 			}
 			else if (right_ == 1) {
-				hand_pos_right_.x += advanceVal;
+				manual_hand_pos_right_.x += advanceVal;
 			}
 			if (forward_ == 1) {
-				hand_pos_right_.z -= advanceVal;
+				manual_hand_pos_right_.z -= advanceVal;
 			}
 			else if (backward_ == 1) {
-				hand_pos_right_.z += advanceVal;
+				manual_hand_pos_right_.z += advanceVal;
 			}
 			if (up_ == 1) {
-				hand_pos_right_.y += advanceVal;
+				manual_hand_pos_right_.y += advanceVal;
 			}
 			else if (down_ == 1) {
-				hand_pos_right_.y -= advanceVal;
+				manual_hand_pos_right_.y -= advanceVal;
 			}
-			M = translate(mat4(1), hand_pos_right_);
+			M = translate(mat4(1), manual_hand_pos_right_);
 		}
 		M *= scale(mat4(1), vec3(handScale));
+		mat4 handPosRightMat = M;
+		vec3 handPosRight = vec3((V * M)[3]);
 
-		vec3 handPos = vec3((V * M)[3]);
-
+		//// first calculation amplitude. TODO: remove later
 		float amplitude = bi_star_facts.x * bi_star_facts.y;
 
-		float f = dot(normalize(vec2(length(vec2(handPos.x, handPos.z)), handPos.y)), vec2(1, 0));
+		float f = dot(normalize(vec2(length(vec2(handPosRight.x, handPosRight.z)), handPosRight.y)), vec2(1, 0));
 
 		amplitude *= f;
+		////
 
 		//M = translate(mat4(1), vec3(-1.5f, 0.f, 1.f));
 		//cout << "POS "; printVec(vec3(M[3])); cout << " trans: "; printVec(transVec); cout << " and diff "; printVec(vec3(M[3]) - transVec);
@@ -1162,19 +1164,29 @@ public:
 		shape_hand_right->draw(prog_hand_right, false);
 		prog_hand_right->unbind();
 
-		// roundf(amplitude * 100.f) / 100.f
+		//// proper amplitude calculation with compute shader
+
+		// send additional data "down" to gpu with the buffer.
+		/*ssbo_CPUMEM.io[0] = vec4(-cam_.pos, 0);
+		computeShader();
+		amplitude = ssbo_CPUMEM.io[0].x;
+		printVec(ssbo_CPUMEM.io[0], "cpumem io vector: ");*/
+		////
+
+
+		// Drawing text on hand position (previous M). extract to function and add for both hands?
+		// round(amplitude * 100.f) / 100.f
 		if (!manualMode) {
 			font->draw(0.2f, 0.35f, 0.3f, (string)"Amplitude: " + to_string(round(amplitude * 100.f) / 100.f), 1.f, 1.f, 1.f);
-			font->draw();
 		}
 		else {
-			vec3 handTextOffset = vec3(0.f, 0.f, 0.f);
-			vec4 screenpos = P * V * vec4(hand_pos_right_ + handTextOffset, 1);
+			vec3 handTextOffset = vec3(0.015f, 0.015f, 0.f);
+			vec4 screenpos = P * V * vec4(manual_hand_pos_right_ + handTextOffset, 1);
 			screenpos.x /= screenpos.w;
 			screenpos.y /= screenpos.w;
 			font->draw(screenpos.x, screenpos.y + 0.05f, 0.3f, (string)"Ampl.: " + to_string(amplitude), 1.f, 1.f, 1.f);
-			font->draw();
 		}
+		font->draw();
 
 //        prog_box_DEBUG->bind();
 //        P = V = mat4(1);
