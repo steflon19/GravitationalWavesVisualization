@@ -15,6 +15,7 @@ out vec3 camvertex_pos;
 out vec3 scolor;
 uniform sampler2D tex2;
 uniform vec2 bi_star_facts;
+
 vec4 getAttractedPosition() {
     
     vec4 pos = M * vec4(vertPos,1);
@@ -28,6 +29,7 @@ vec4 getAttractedPosition() {
     float force = (a) / pow(d,2);// clamp(a / pow(d,3), 0.,1.);
     //force = pow(force, 1/12);
     force = pow(force, 5.5/10.);
+	// TODO: fix clamping, attraction only from one side
     pos.xyz = clamp(pos.xyz + normalize(dir) * force, pos.xyz, (SpherePos-normalize(dir)*earthScale)); // 0.02 is the scale factor of the sphere
 
     return pos;
@@ -72,7 +74,7 @@ void main()
     camvertex_pos = vec3(V * attractedPosition);
     gl_Position = P * V * attractedPosition;
     
-    // fake Gravitational waves from texture
+    // simulated Gravitational waves from texture
     //tpos -> texcoord
     //tpos.z*=-1;
     

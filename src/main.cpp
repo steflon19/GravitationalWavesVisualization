@@ -28,6 +28,15 @@ using namespace glm;
 #endif
 #define MSAAFACT 2
 OpenVRApplication* vrapp = NULL;
+
+#define SSBO_SIZE 4
+class ssbo_data
+{
+public:
+	vec4 io[SSBO_SIZE];//pos input in xyz, output in w
+};
+
+
 double get_last_elapsed_time()
 {
     static double lasttime = glfwGetTime();
@@ -142,6 +151,79 @@ public:
 
 	bool paused = false;
 	bool manualMode = false;
+
+	ssbo_data ssbo_CPUMEM;
+	GLuint ssbo_GPU_id;
+	GLuint computeProgram;
+	void init_computeshader()
+	{
+		GLSL::checkVersion();
+		//load the compute shader
+		std::string ShaderString = readFileAsString(shaderDir + "/shader_compute.glsl");
+		const char* shader = ShaderString.c_str();
+		GLuint computeShader = glCreateShader(GL_COMPUTE_SHADER);
+		glShaderSource(computeShader, 1, &shader, nullptr);
+
+		GLint rc;
+		CHECKED_GL_CALL(glCompileShader(computeShader));
+		CHECKED_GL_CALL(glGetShaderiv(computeShader, GL_COMPILE_STATUS, &rc));
+		if (!rc)	//error compiling the shader file
+		{
+			GLSL::printShaderInfoLog(computeShader);
+			std::cout << "Error compiling fragment shader " << std::endl;
+			exit(1);
+		}
+
+		computeProgram = glCreateProgram();
+		glAttachShader(computeProgram, computeShader);
+		glLinkProgram(computeProgram);
+		glUseProgram(computeProgram);
+
+		GLuint block_index = 0;
+		block_index = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		GLuint ssbo_binding_point_index = 2;
+		glShaderStorageBlockBinding(computeProgram, block_index, ssbo_binding_point_index);
+
+		for (int ii = 0; ii < SSBO_SIZE; ii++)
+		{
+			ssbo_CPUMEM.io[ii] = vec4(ii, 0.0, 0.0, 0.0);
+		}
+		glGenBuffers(1, &ssbo_GPU_id);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(ssbo_data), &ssbo_CPUMEM, GL_DYNAMIC_COPY);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
+	}
+	void computeShader()
+	{
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(ssbo_data), &ssbo_CPUMEM, GL_DYNAMIC_COPY);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
+		
+		GLuint block_index = 0;
+		block_index = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		GLuint ssbo_binding_point_index = 0;
+		glShaderStorageBlockBinding(computeProgram, block_index, ssbo_binding_point_index);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
+		glUseProgram(computeProgram);
+
+
+		glDispatchCompute((GLuint)SSBO_SIZE, (GLuint)1, 1);				//start compute shader
+																		//glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
+
+		//copy data back to CPU MEM
+
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
+		GLvoid* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+		int siz = sizeof(ssbo_data);
+		memcpy(&ssbo_CPUMEM, p, siz);
+		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+
+		cout << "current height: " << ssbo_CPUMEM.io[0].w << endl;
+	}
 
 	void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 		{
@@ -351,6 +433,7 @@ public:
     int grid_vertices_size;
 	void initGeom()
     {
+		init_computeshader();
         // generating the grid
         std::vector<vec3> grid_x, grid_y, grid_z;
         float step = 0.125/2;
@@ -383,7 +466,7 @@ public:
                 }
             }
         
-        // TODO: add "closing" line (just because) at the end.
+        // TODO: add "closing" line at the end.
         
         // all vertices have to be the same length anyway.
         grid_vertices_size = grid_x.size();
@@ -430,9 +513,7 @@ public:
         shape_moon_->resize();
         shape_moon_->init();
 
-        // this shoudl be obsolete later? just now to visualize the source of gravitational waves
         shape_gw_source_ = make_shared<Shape>();
-        //shape->loadMesh(resourceDir + "/t800.obj");
         shape_gw_source_->loadMesh(resourceDir + "/sphere.obj");
         shape_gw_source_->resize();
         shape_gw_source_->init();
@@ -615,7 +696,7 @@ public:
         rectangle_vertices[verccount++] = -1.0, rectangle_vertices[verccount++] = -1.0, rectangle_vertices[verccount++] = 0.0;
         rectangle_vertices[verccount++] = 1.0, rectangle_vertices[verccount++] = -1.0, rectangle_vertices[verccount++] = 0.0;
         rectangle_vertices[verccount++] = -1.0, rectangle_vertices[verccount++] = 1.0, rectangle_vertices[verccount++] = 0.0;
-        rectangle_vertices[verccount++] = 1.0, rectangle_vertices[verccount++] = -1, rectangle_vertices[verccount++] = 0.0;
+        rectangle_vertices[verccount++] = 1.0, rectangle_vertices[verccount++] = -1.0, rectangle_vertices[verccount++] = 0.0;
         rectangle_vertices[verccount++] = 1.0, rectangle_vertices[verccount++] = 1.0, rectangle_vertices[verccount++] = 0.0;
         rectangle_vertices[verccount++] = -1.0, rectangle_vertices[verccount++] = 1.0, rectangle_vertices[verccount++] = 0.0;
         glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(float), rectangle_vertices, GL_STATIC_DRAW);
@@ -764,9 +845,6 @@ public:
         initProgram(prog_post_proc,
                     vector<string>({ "/ppvert.glsl", "/ppfrag.glsl" }));
 
-        
-
-
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     }
@@ -785,6 +863,10 @@ public:
     ********/
     void render(int width, int height, glm::mat4 VRheadmatrix, int eye, bool VRon)
     {
+		for (int i = 0; i < SSBO_SIZE; i++)
+			ssbo_CPUMEM.io[i] = vec4(0, 0, 0, 0);
+		ssbo_CPUMEM.io[0] = vec4(-cam_.pos, 0);
+		computeShader();
 
 		vec4 lightpos = vec4(0, 0, 0, 1);
 		vec3 colordot = vec3(1);
@@ -1082,7 +1164,7 @@ public:
 
 		// roundf(amplitude * 100.f) / 100.f
 		if (!manualMode) {
-			font->draw(0.2f, 0.35f, 0.3f, (string)"Amplitude: " + to_string(roundf(amplitude * 100.f) / 100.f), 1.f, 1.f, 1.f);
+			font->draw(0.2f, 0.35f, 0.3f, (string)"Amplitude: " + to_string(round(amplitude * 100.f) / 100.f), 1.f, 1.f, 1.f);
 			font->draw();
 		}
 		else {
@@ -1181,7 +1263,7 @@ int main(int argc, char **argv)
     // Initialize scene.
     application->init(resourceDir);
 	application->initGeom();
-	application->paused = false;
+
 	vrapp->init_buffers("../resources/shaders", MSAAFACT);
 
     // Loop until the user closes the window.

@@ -41,6 +41,7 @@
     <ClInclude Include="WindowManager.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\resources\shaders\shader_compute.glsl" />
     <None Include="..\resources\shaders\ppfrag.glsl" />
     <None Include="..\resources\shaders\ppvert.glsl" />
     <None Include="..\resources\shaders\shader_fragment_debug.glsl" />

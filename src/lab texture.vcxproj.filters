@@ -75,5 +75,6 @@
     <None Include="..\resources\shaders\ppvert.glsl">
       <Filter>shader</Filter>
     </None>
+    <None Include="..\resources\shaders\shader_compute.glsl" />
   </ItemGroup>
 </Project>
