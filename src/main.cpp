@@ -192,17 +192,17 @@ public:
 	}
 	void computeShader()
 	{
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, prog_compute_shader->gpuId);
 		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(ssbo_data), &ssbo_CPUMEM, GL_DYNAMIC_COPY);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, prog_compute_shader->gpuId);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
 		
 		GLuint block_index = 0;
-		block_index = glGetProgramResourceIndex(compute_shader_pid, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		block_index = glGetProgramResourceIndex(prog_compute_shader->pid, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		GLuint ssbo_binding_point_index = 0;
-		glShaderStorageBlockBinding(compute_shader_pid, block_index, ssbo_binding_point_index);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
-		glUseProgram(compute_shader_pid);
+		glShaderStorageBlockBinding(prog_compute_shader->pid, block_index, ssbo_binding_point_index);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, prog_compute_shader->gpuId);
+		glUseProgram(prog_compute_shader->pid);
 
 
 		glDispatchCompute((GLuint)SSBO_SIZE, (GLuint)1, 1);				//start compute shader
@@ -211,7 +211,7 @@ public:
 
 		//copy data back to CPU MEM
 
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, prog_compute_shader->gpuId);
 		GLvoid* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
 		int siz = sizeof(ssbo_data);
 		memcpy(&ssbo_CPUMEM, p, siz);
@@ -850,10 +850,10 @@ public:
 
 		initProgram(prog_compute_shader,
 			vector<string>({"/shader_compute.glsl"}),
-			vector<string>({"M, Ry, bi_star_facts"}));
+			vector<string>({"M", "Ry", "bi_star_facts"}));
 
 //        initProgram(prog_box_DEBUG,
-////                    vector<string>({"angle"}),
+//                    vector<string>({"angle"}),
 //                    vector<string>({"/shader_vertex_debug.glsl", "/shader_fragment_debug.glsl"}));
 //        prog_box_DEBUG->addUniform("angle");
 
@@ -998,6 +998,7 @@ public:
         mat4 earthMatrix = M;
         glUniformMatrix4fv(prog_earth->getUniform("M"), 1, GL_FALSE, &M[0][0]);
         glUniformMatrix4fv(prog_earth->getUniform("Ry"), 1, GL_FALSE, &Ry[0][0]);
+		glUniform2fv(prog_earth->getUniform("bi_star_facts"), 1, &bi_star_facts.x);
 		lightpos.w = 0;
 		glUniform4fv(prog_earth->getUniform("lightpos"), 1, &lightpos.x);
 		colordot = vec3(1);
@@ -1163,11 +1164,11 @@ public:
 		vec3 handPosRight = vec3((V * M)[3]);
 
 		//// first calculation amplitude. TODO: remove later
-		float amplitude = bi_star_facts.x * bi_star_facts.y;
+		//float amplitude = bi_star_facts.x * bi_star_facts.y;
+		float amplitude = 0.f;
+		//float f = dot(normalize(vec2(length(vec2(handPosRight.x, handPosRight.z)), handPosRight.y)), vec2(1, 0));
 
-		float f = dot(normalize(vec2(length(vec2(handPosRight.x, handPosRight.z)), handPosRight.y)), vec2(1, 0));
-
-		amplitude *= f;
+		//amplitude *= f;
 		////
 
 		//M = translate(mat4(1), vec3(-1.5f, 0.f, 1.f));
@@ -1179,11 +1180,21 @@ public:
 
 		//// proper amplitude calculation with compute shader
 
+		prog_compute_shader->bind();
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, Texture_spiral);		
+		glUniformMatrix4fv(prog_compute_shader->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		glUniformMatrix4fv(prog_compute_shader->getUniform("Ry"), 1, GL_FALSE, &Ry[0][0]);
+		glUniform2fv(prog_compute_shader->getUniform("bi_star_facts"), 1, &bi_star_facts.x);
+		cout << "before calculating " << bi_star_facts.x << " - " << bi_star_facts.y << endl;
+		// prog_compute_shader->unbind(); //???
 		// send additional data "down" to gpu with the buffer.
 		//ssbo_CPUMEM.io[0] = vec4(-cam_.pos, 0);
-		//computeShader();
+		computeShader(); // prog_compute_shader->computeComputeShader();
+		amplitude = ssbo_CPUMEM.io[0].w;
 		//amplitude = ssbo_CPUMEM.io[0].x;
 		//printVec(ssbo_CPUMEM.io[0], "cpumem io vector: ");
+		prog_compute_shader->unbind();
 		////
 
 

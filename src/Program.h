@@ -40,8 +40,8 @@ public:
 	GLint getUniform(const std::string &name) const;
 	ssbo_data getSsboData();
 	void setSsboData(ssbo_data data);
-	float computeComputeShader();
 	GLuint pid = 0;
+	GLuint gpuId = 0;
 	
 protected:
 
