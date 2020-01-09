@@ -217,8 +217,7 @@ public:
 		memcpy(&ssbo_CPUMEM, p, siz);
 		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
-
-		cout << "current height: " << ssbo_CPUMEM.io[0].w << endl;
+		// cout << "current height: " << ssbo_CPUMEM.io[0].w << endl;
 	}
 
 	void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -1186,7 +1185,6 @@ public:
 		glUniformMatrix4fv(prog_compute_shader->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		glUniformMatrix4fv(prog_compute_shader->getUniform("Ry"), 1, GL_FALSE, &Ry[0][0]);
 		glUniform2fv(prog_compute_shader->getUniform("bi_star_facts"), 1, &bi_star_facts.x);
-		cout << "before calculating " << bi_star_facts.x << " - " << bi_star_facts.y << endl;
 		// prog_compute_shader->unbind(); //???
 		// send additional data "down" to gpu with the buffer.
 		//ssbo_CPUMEM.io[0] = vec4(-cam_.pos, 0);

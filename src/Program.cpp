@@ -41,7 +41,6 @@ void Program::setShaderNames(const std::string &v, const std::string &f)
 }
 void Program::setShaderNames(const std::string &c) {
 	cShaderName = c;
-	std::cout << "SETTING C SHADER PROPERLY ??!" << c << std::endl;
 	//cs_ssbo_data;
 }
 bool Program::init()
@@ -55,10 +54,10 @@ bool Program::init()
 	GLint CS = -1;
 
 	// Read shader sources
-	std::string vShaderString = readFileAsString(vShaderName);
-	std::string fShaderString = readFileAsString(fShaderName);
-	std::string gShaderString = readFileAsString(gShaderName);
-	std::string cShaderString = readFileAsString(cShaderName);
+	std::string vShaderString = vShaderName.size() > 0 ? readFileAsString(vShaderName) : "";
+	std::string fShaderString = fShaderName.size() > 0 ? readFileAsString(fShaderName) : "";
+	std::string gShaderString = gShaderName.size() > 0 ? readFileAsString(gShaderName) : "";
+	std::string cShaderString = cShaderName.size() > 0 ? readFileAsString(cShaderName) : "";
 	const char *vshader = vShaderString.c_str();
 	const char *fshader = fShaderString.c_str();
 	const char *gshader = gShaderString.c_str();
@@ -66,8 +65,6 @@ bool Program::init()
 
 	if (vShaderString.size() > 0) {
 		VS = glCreateShader(GL_VERTEX_SHADER);
-		// TODO: here was once an error, maybe occurs again?
-		std::cout << "setting vshader? " << vShaderName << " and VS " << VS << std::endl;
 		CHECKED_GL_CALL(glShaderSource(VS, 1, &vshader, NULL));
 	}
 	if (fShaderString.size() > 0) {
