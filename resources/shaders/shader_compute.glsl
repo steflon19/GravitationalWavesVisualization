@@ -2,11 +2,10 @@
 #extension GL_ARB_shader_storage_buffer_object : require
 layout(local_size_x = 1, local_size_y = 1) in;
 // TODO this has to be added properly to the shader or the programm will crash
-//layout(location = 0) in vec3 vertPos;
-//uniform mat4 M;
-//uniform mat4 Ry;
-//uniform sampler2D tex2;
-//uniform vec2 bi_star_facts;
+uniform mat4 M;
+uniform mat4 Ry;
+uniform sampler2D tex2;
+uniform vec2 bi_star_facts;
 
 layout (std430, binding=0) volatile buffer shader_data
 { 
@@ -68,6 +67,6 @@ void main()
 	height*=30.0;
 	height-=5.0;
 
-	io[index].w = height;
+	io[index].w = height * 2;
 	
 }

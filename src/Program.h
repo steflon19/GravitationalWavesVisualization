@@ -8,10 +8,16 @@
 #include <string>
 
 #include <glad/glad.h>
-
+#include <glm/glm.hpp>
 
 std::string readFileAsString(const std::string &fileName);
+#define SSBO_SIZE 4 //512
 
+class ssbo_data
+{
+public:
+	glm::vec4 io[SSBO_SIZE];//pos input in xyz, output in w
+};
 class Program
 {
 
@@ -22,6 +28,7 @@ public:
 
 	void setShaderNames(const std::string &v, const std::string &f, const std::string &g);
 	void setShaderNames(const std::string &v, const std::string &f);
+	void setShaderNames(const std::string &c);
 	virtual bool init();
 	virtual void bind();
 	virtual void unbind();
@@ -31,11 +38,16 @@ public:
 	GLint getAttribute(const std::string &name) const;
 	GLint getUniform(const std::string &name) const;
 	GLuint pid = 0;
+	
+
 protected:
 
 	std::string vShaderName;
 	std::string fShaderName;
 	std::string gShaderName;
+	std::string cShaderName;
+
+	ssbo_data cs_ssbo_data;
 
 private:
 

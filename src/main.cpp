@@ -30,12 +30,6 @@ using namespace glm;
 OpenVRApplication* vrapp = NULL;
 
 #define SSBO_SIZE 4
-class ssbo_data
-{
-public:
-	vec4 io[SSBO_SIZE];//pos input in xyz, output in w
-};
-
 
 double get_last_elapsed_time()
 {
@@ -152,7 +146,7 @@ public:
 	bool paused = false;
 	bool manualMode = false;
 
-	ssbo_data ssbo_CPUMEM;
+	Ssbo_data ssbo_CPUMEM;
 	GLuint ssbo_GPU_id;
 	GLuint compute_shader_pid;
 	void initComputeShader()
@@ -737,7 +731,7 @@ public:
     
     void initProgram(std::shared_ptr<Program> prog, vector<string> shaderv, vector<string> uniformv = vector<string>(), vector<string> attributesv = vector<string>()) {
 		prog->setVerbose(true);
-        prog->setShaderNames(shaderDir + shaderv.at(0), shaderDir + shaderv.at(1), shaderv.size() > 2 ? shaderDir + shaderv.at(2) : "");
+        prog->setShaderNames(shaderDir + shaderv.at(0), shaderv.size() > 1 ? shaderDir + shaderv.at(1) : "", shaderv.size() > 2 ? shaderDir + shaderv.at(2) : "");
         
         if (!prog->init())
         {
@@ -1167,10 +1161,10 @@ public:
 		//// proper amplitude calculation with compute shader
 
 		// send additional data "down" to gpu with the buffer.
-		/*ssbo_CPUMEM.io[0] = vec4(-cam_.pos, 0);
+		ssbo_CPUMEM.io[0] = vec4(-cam_.pos, 0);
 		computeShader();
 		amplitude = ssbo_CPUMEM.io[0].x;
-		printVec(ssbo_CPUMEM.io[0], "cpumem io vector: ");*/
+		printVec(ssbo_CPUMEM.io[0], "cpumem io vector: ");
 		////
 
 

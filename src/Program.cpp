@@ -4,7 +4,6 @@
 #include <cassert>
 #include <fstream>
 
-#include "GLSL.h"
 
 
 std::string readFileAsString(const std::string &fileName)
@@ -40,40 +39,62 @@ void Program::setShaderNames(const std::string &v, const std::string &f)
 	vShaderName = v;
 	fShaderName = f;
 }
+void Program::setShaderNames(const std::string &c) {
+	cShaderName = c;
+	//cs_ssbo_data;
+}
 bool Program::init()
 {
 	GLint rc;
 
 	// Create shader handles
-	GLuint VS = glCreateShader(GL_VERTEX_SHADER);
-	GLuint FS = glCreateShader(GL_FRAGMENT_SHADER);
-	int GS = -1;
+	GLint VS = -1;// glCreateShader(GL_VERTEX_SHADER);
+	GLint FS = -1;// glCreateShader(GL_FRAGMENT_SHADER);
+	GLint GS = -1;
+	GLint CS = -1;
 
 	// Read shader sources
 	std::string vShaderString = readFileAsString(vShaderName);
 	std::string fShaderString = readFileAsString(fShaderName);
 	std::string gShaderString = readFileAsString(gShaderName);
+	std::string cShaderString = readFileAsString(cShaderName);
 	const char *vshader = vShaderString.c_str();
 	const char *fshader = fShaderString.c_str();
 	const char *gshader = gShaderString.c_str();
-	CHECKED_GL_CALL(glShaderSource(VS, 1, &vshader, NULL));
-	CHECKED_GL_CALL(glShaderSource(FS, 1, &fshader, NULL));
+	const char *cshader = cShaderString.c_str();
+
+	if (vShaderString.size() > 0) {
+		VS = glCreateShader(GL_VERTEX_SHADER);
+		// TODO: here was once an error, maybe occurs again?
+		CHECKED_GL_CALL(glShaderSource(VS, 1, &vshader, NULL));
+	}
+	if (fShaderString.size() > 0) {
+		FS = glCreateShader(GL_FRAGMENT_SHADER);
+		CHECKED_GL_CALL(glShaderSource(FS, 1, &fshader, NULL));
+	}
 	if (gShaderString.size() > 0)
 	{
 		GS = glCreateShader(GL_GEOMETRY_SHADER);
 		CHECKED_GL_CALL(glShaderSource(GS, 1, &gshader, NULL));
 	}
-	// Compile vertex shader
-	CHECKED_GL_CALL(glCompileShader(VS));
-	CHECKED_GL_CALL(glGetShaderiv(VS, GL_COMPILE_STATUS, &rc));
-	if (!rc)
+	if (cShaderString.size() > 0)
 	{
-		if (isVerbose())
+		CS = glCreateShader(GL_COMPUTE_SHADER);
+		CHECKED_GL_CALL(glShaderSource(CS, 1, &cshader, NULL));
+	}
+	if (VS >= 0) {
+		// Compile vertex shader
+		CHECKED_GL_CALL(glCompileShader(VS));
+		CHECKED_GL_CALL(glGetShaderiv(VS, GL_COMPILE_STATUS, &rc));
+		if (!rc)
 		{
-			GLSL::printShaderInfoLog(VS);
-			std::cout << "Error compiling vertex shader " << vShaderName << std::endl;
+			if (isVerbose())
+			{
+				GLSL::printShaderInfoLog(VS);
+				std::cout << "Error compiling vertex shader " << vShaderName << std::endl;
+			}
+			return false;
 		}
-		return false;
 	}
 	// Compile geometry shader
 	if (GS >= 0)
@@ -85,31 +106,51 @@ bool Program::init()
 			if (isVerbose())
 			{
 				GLSL::printShaderInfoLog(GS);
+				std::cout << "Error compiling geometry shader " << gShaderName << std::endl;
+			}
+			return false;
+		}
+	}
+	if (FS >= 0) {
+		// Compile fragment shader
+		CHECKED_GL_CALL(glCompileShader(FS));
+		CHECKED_GL_CALL(glGetShaderiv(FS, GL_COMPILE_STATUS, &rc));
+		if (!rc)
+		{
+			if (isVerbose())
+			{
+				GLSL::printShaderInfoLog(FS);
 				std::cout << "Error compiling fragment shader " << fShaderName << std::endl;
 			}
 			return false;
 		}
 	}
-	// Compile fragment shader
-	CHECKED_GL_CALL(glCompileShader(FS));
-	CHECKED_GL_CALL(glGetShaderiv(FS, GL_COMPILE_STATUS, &rc));
-	if (!rc)
-	{
-		if (isVerbose())
+	if (CS >= 0) {
+		// Compile compute shader
+		CHECKED_GL_CALL(glCompileShader(CS));
+		CHECKED_GL_CALL(glGetShaderiv(CS, GL_COMPILE_STATUS, &rc));
+		if (!rc)
 		{
-			GLSL::printShaderInfoLog(FS);
-			std::cout << "Error compiling fragment shader " << fShaderName << std::endl;
+			if (isVerbose())
+			{
+				GLSL::printShaderInfoLog(CS);
+				std::cout << "Error compiling compute shader " << cShaderName << std::endl;
+			}
+			return false;
 		}
-		return false;
 	}
 
 
 	// Create the program and link
 	pid = glCreateProgram();
-	CHECKED_GL_CALL(glAttachShader(pid, VS));
-	CHECKED_GL_CALL(glAttachShader(pid, FS));
+	if (VS >= 0)
+		CHECKED_GL_CALL(glAttachShader(pid, VS));
+	if (FS >= 0)
+		CHECKED_GL_CALL(glAttachShader(pid, FS));
 	if (GS >= 0)
 		CHECKED_GL_CALL(glAttachShader(pid, GS));
+	if (CS >= 0)
+		CHECKED_GL_CALL(glAttachShader(pid, CS));
 	CHECKED_GL_CALL(glLinkProgram(pid));
 	CHECKED_GL_CALL(glGetProgramiv(pid, GL_LINK_STATUS, &rc));
 	if (!rc)
