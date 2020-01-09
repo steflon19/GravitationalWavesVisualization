@@ -4,7 +4,7 @@
 #include <cassert>
 #include <fstream>
 
-
+#include "GLSL.h"
 
 std::string readFileAsString(const std::string &fileName)
 {
@@ -163,6 +163,25 @@ bool Program::init()
 		return false;
 	}
 
+	if (CS >= 0) {
+		glUseProgram(pid);
+
+		GLuint block_index = 0;
+		block_index = glGetProgramResourceIndex(pid, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		GLuint ssbo_binding_point_index = 2;
+		glShaderStorageBlockBinding(pid, block_index, ssbo_binding_point_index);
+
+		for (int ii = 0; ii < SSBO_SIZE; ii++)
+		{
+			cs_ssbo_data.io[ii] = glm::vec4(ii, 0.0, 0.0, 0.0);
+		}
+		glGenBuffers(1, &cs_ssbo_gpu_id);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, cs_ssbo_gpu_id);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(ssbo_data), &cs_ssbo_data, GL_DYNAMIC_COPY);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, cs_ssbo_gpu_id);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
+	}
+
 	return true;
 }
 
@@ -212,4 +231,47 @@ GLint Program::getUniform(const std::string &name) const
 		return -1;
 	}
 	return uniform->second;
+}
+
+ssbo_data Program::getSsboData() {
+	return cs_ssbo_data;
+}
+
+void Program::setSsboData(ssbo_data data) {
+	cs_ssbo_data = data;
+}
+
+float Program::computeComputeShader() {
+	std::string cShaderString = readFileAsString(cShaderName);
+	if (cShaderString.size() <= 0) {
+		std::cout << "computeShader called without Compute Shader!" << std::endl;
+		//exit(1);
+	}
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->pid);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(ssbo_data), &cs_ssbo_data, GL_DYNAMIC_COPY);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, this->cs_ssbo_gpu_id);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
+
+	GLuint block_index = 0;
+	block_index = glGetProgramResourceIndex(this->pid, GL_SHADER_STORAGE_BLOCK, "shader_data");
+	GLuint ssbo_binding_point_index = 0;
+	glShaderStorageBlockBinding(this->pid, block_index, ssbo_binding_point_index);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, this->cs_ssbo_gpu_id);
+	glUseProgram(this->pid);
+
+
+	glDispatchCompute((GLuint)SSBO_SIZE, (GLuint)1, 1);				//start compute shader
+																	//glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
+
+	//copy data back to CPU MEM
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->cs_ssbo_gpu_id);
+	GLvoid* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY);
+	int siz = sizeof(ssbo_data);
+	memcpy(&cs_ssbo_data, p, siz);
+	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+	std::cout << "compute shader calculated value: " << cs_ssbo_data.io[0].w << std::endl;
+	return cs_ssbo_data.io[0].w;
 }

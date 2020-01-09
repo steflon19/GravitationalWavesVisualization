@@ -13,6 +13,7 @@
 std::string readFileAsString(const std::string &fileName);
 #define SSBO_SIZE 4 //512
 
+// TODO: make variable size!! why even class and not struct?
 class ssbo_data
 {
 public:
@@ -37,9 +38,11 @@ public:
 	void addUniform(const std::string &name);
 	GLint getAttribute(const std::string &name) const;
 	GLint getUniform(const std::string &name) const;
+	ssbo_data getSsboData();
+	void setSsboData(ssbo_data data);
+	float computeComputeShader();
 	GLuint pid = 0;
 	
-
 protected:
 
 	std::string vShaderName;
@@ -47,6 +50,7 @@ protected:
 	std::string gShaderName;
 	std::string cShaderName;
 
+	GLuint cs_ssbo_gpu_id;
 	ssbo_data cs_ssbo_data;
 
 private:
@@ -55,7 +59,6 @@ private:
 	std::map<std::string, GLint> attributes;
 	std::map<std::string, GLint> uniforms;
 	bool verbose = true;
-
 };
 
 #endif // LAB471_PROGRAM_H_INCLUDED

@@ -125,6 +125,8 @@ public:
 	std::shared_ptr<Program> prog_hand_left, prog_hand_right;
     std::shared_ptr<Program> prog_skybox;
     std::shared_ptr<Program> prog_post_proc;
+
+	std::shared_ptr<Program> prog_compute_shader;
     
     std::shared_ptr<Program> prog_box_DEBUG;
 
@@ -146,7 +148,7 @@ public:
 	bool paused = false;
 	bool manualMode = false;
 
-	Ssbo_data ssbo_CPUMEM;
+	ssbo_data ssbo_CPUMEM;
 	GLuint ssbo_GPU_id;
 	GLuint compute_shader_pid;
 	void initComputeShader()
@@ -426,7 +428,7 @@ public:
     int grid_vertices_size;
 	void initGeom()
     {
-		initComputeShader();
+		// initComputeShader();
         // generating the grid
         std::vector<vec3> grid_x, grid_y, grid_z;
         float step = 0.125/2;
@@ -731,7 +733,20 @@ public:
     
     void initProgram(std::shared_ptr<Program> prog, vector<string> shaderv, vector<string> uniformv = vector<string>(), vector<string> attributesv = vector<string>()) {
 		prog->setVerbose(true);
-        prog->setShaderNames(shaderDir + shaderv.at(0), shaderv.size() > 1 ? shaderDir + shaderv.at(1) : "", shaderv.size() > 2 ? shaderDir + shaderv.at(2) : "");
+		switch (shaderv.size()) {
+			case 1:
+				prog->setShaderNames(shaderDir + shaderv.at(0));
+				break;
+			case 2:
+				prog->setShaderNames(shaderDir + shaderv.at(0), shaderDir + shaderv.at(1));
+				break;
+			case 3:
+				prog->setShaderNames(shaderDir + shaderv.at(0), shaderDir + shaderv.at(1), shaderDir + shaderv.at(2));
+				break;
+			default:
+				std::cerr << "Invalid call to initProgramm, invalid number of shaders: " << shaderv.size() << "!" << std::endl;
+		}
+
         
         if (!prog->init())
         {
@@ -790,6 +805,8 @@ public:
 
 		prog_hand_left = make_shared<Program>();
 		prog_hand_right = make_shared<Program>();
+
+		prog_compute_shader = make_shared<Program>();
         
         prog_box_DEBUG = make_shared<Program>();
         
@@ -825,13 +842,15 @@ public:
 			vector<string>({ "/shader_vertex_sphere.glsl", "/shader_fragment_sphere.glsl" }),
 			vector<string>({ "P", "V", "M","lightpos" ,"colordot" }),
 			vector<string>({ "vertPos", "vertNor", "vertTex" }));
-
                 
         initProgram(prog_gw_source,
             vector<string>({"/shader_vertex_sphere.glsl", "/shader_fragment_sphere.glsl"}),
             vector<string>({"P", "V", "M","lightpos" ,"colordot"  }),
             vector<string>({"vertPos","vertNor", "vertTex"}));
 
+		initProgram(prog_compute_shader,
+			vector<string>({"/shader_compute.glsl"}),
+			vector<string>({"M, Ry, bi_star_facts"}));
 
 //        initProgram(prog_box_DEBUG,
 ////                    vector<string>({"angle"}),
@@ -1161,10 +1180,10 @@ public:
 		//// proper amplitude calculation with compute shader
 
 		// send additional data "down" to gpu with the buffer.
-		ssbo_CPUMEM.io[0] = vec4(-cam_.pos, 0);
-		computeShader();
-		amplitude = ssbo_CPUMEM.io[0].x;
-		printVec(ssbo_CPUMEM.io[0], "cpumem io vector: ");
+		//ssbo_CPUMEM.io[0] = vec4(-cam_.pos, 0);
+		//computeShader();
+		//amplitude = ssbo_CPUMEM.io[0].x;
+		//printVec(ssbo_CPUMEM.io[0], "cpumem io vector: ");
 		////
 
 
