@@ -11,7 +11,7 @@
 #include <glm/glm.hpp>
 
 std::string readFileAsString(const std::string &fileName);
-#define SSBO_SIZE 4 //512
+#define SSBO_SIZE 512
 
 // TODO: make variable size!! why even class and not struct?
 class ssbo_data

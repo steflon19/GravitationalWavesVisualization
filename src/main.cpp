@@ -130,8 +130,8 @@ public:
     
     std::shared_ptr<Program> prog_box_DEBUG;
 
-	vec3 HandPosLeft = vec3(0);
-	vec3 HandPosRight = vec3(0);
+	vec3 ControllerPosLeft = vec3(0);
+	vec3 ControllerPosRight = vec3(0);
 
     // Contains vertex information for OpenGL
     GLuint VertexArrayID;
@@ -146,7 +146,7 @@ public:
     GLuint cubemapTexture, FBO_MSAA, FBO_MSAA_depth, FBO_MSAA_color, VertexArrayIDBox, VertexBufferIDBox;
 
 	bool paused = false;
-	bool manualMode = false;
+	bool manualMode = true;
 
 	ssbo_data ssbo_CPUMEM;
 	GLuint ssbo_GPU_id;
@@ -233,7 +233,7 @@ public:
 			earth_dir_z_ = 0.2;
 			earth_dir_y_ = 0.;
 			manual_hand_pos_left_ = vec3(-2.f, 0.f, 0.1f);
-			manual_hand_pos_right_ = vec3(-1.f, 0.f, 0.1f);
+			manual_hand_pos_right_ = vec3(-1.f, 0.5f, 0.1f);
 		}
 
 		if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS)
@@ -849,7 +849,7 @@ public:
 
 		initProgram(prog_compute_shader,
 			vector<string>({"/shader_compute.glsl"}),
-			vector<string>({"M", "Ry", "bi_star_facts"}));
+			vector<string>({"Ry", "HandPos", "bi_star_facts"}));
 
 //        initProgram(prog_box_DEBUG,
 //                    vector<string>({"angle"}),
@@ -1114,7 +1114,7 @@ public:
 		glUniform3fv(prog_hand_left->getUniform("colordot"), 1, &colordot.x);
 
 		M = mat4(1);
-		M = translate(mat4(1), HandPosLeft) * scale(mat4(1), vec3(handScale));
+		M = translate(mat4(1), ControllerPosLeft) * scale(mat4(1), vec3(handScale));
 		glUniformMatrix4fv(prog_hand_left->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 
 		// shape_hand_left->draw(prog_hand_left, false);
@@ -1135,7 +1135,7 @@ public:
 		// pos = glm::vec3(1.5, -0., -0.8);
 		if (!manualMode) {
 			vec3 transVec = vec3(-1.5f, -1.2f, 0.5f);// * 1.f/handScale;
-			M = translate(mat4(1), HandPosRight * (1.f) + transVec);// *translate(mat4(1), transVec);
+			M = translate(mat4(1), ControllerPosRight * (1.f) + transVec);// *translate(mat4(1), transVec);
 		}
 		else {
 			if (left_ == 1) {
@@ -1160,15 +1160,9 @@ public:
 		}
 		M *= scale(mat4(1), vec3(handScale));
 		mat4 handPosRightMat = M;
-		vec3 handPosRight = vec3((V * M)[3]);
+		vec3 handPosRightVec = vec3((V * M)[3]);
 
-		//// first calculation amplitude. TODO: remove later
-		//float amplitude = bi_star_facts.x * bi_star_facts.y;
 		float amplitude = 0.f;
-		//float f = dot(normalize(vec2(length(vec2(handPosRight.x, handPosRight.z)), handPosRight.y)), vec2(1, 0));
-
-		//amplitude *= f;
-		////
 
 		//M = translate(mat4(1), vec3(-1.5f, 0.f, 1.f));
 		//cout << "POS "; printVec(vec3(M[3])); cout << " trans: "; printVec(transVec); cout << " and diff "; printVec(vec3(M[3]) - transVec);
@@ -1182,8 +1176,8 @@ public:
 		prog_compute_shader->bind();
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, Texture_spiral);		
-		glUniformMatrix4fv(prog_compute_shader->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		glUniformMatrix4fv(prog_compute_shader->getUniform("Ry"), 1, GL_FALSE, &Ry[0][0]);
+		glUniform3fv(prog_compute_shader->getUniform("HandPos"), 1, &manual_hand_pos_right_.x);
 		glUniform2fv(prog_compute_shader->getUniform("bi_star_facts"), 1, &bi_star_facts.x);
 		// prog_compute_shader->unbind(); //???
 		// send additional data "down" to gpu with the buffer.
@@ -1198,15 +1192,18 @@ public:
 
 		// Drawing text on hand position (previous M). extract to function and add for both hands?
 		// round(amplitude * 100.f) / 100.f
+		string amplString = to_string(round(amplitude * 10000.f) / 10000.f);
+		amplString = amplString.erase(amplString.find_last_not_of('0') + 1, std::string::npos);
+		cout << amplString << endl;// " ----- ";
 		if (!manualMode) {
-			font->draw(0.2f, 0.35f, 0.3f, (string)"Amplitude: " + to_string(round(amplitude * 100.f) / 100.f), 1.f, 1.f, 1.f);
+			font->draw(0.2f, 0.35f, 0.3f, (string)"Ampl.: " + amplString, 1.f, 1.f, 1.f);
 		}
 		else {
 			vec3 handTextOffset = vec3(0.015f, 0.015f, 0.f);
 			vec4 screenpos = P * V * vec4(manual_hand_pos_right_ + handTextOffset, 1);
 			screenpos.x /= screenpos.w;
 			screenpos.y /= screenpos.w;
-			font->draw(screenpos.x, screenpos.y + 0.05f, 0.3f, (string)"Ampl.: " + to_string(amplitude), 1.f, 1.f, 1.f);
+			font->draw(screenpos.x, screenpos.y + 0.05f, 0.3f, (string)"Ampl.: " + amplString, 1.f, 1.f, 1.f);
 		}
 		font->draw();
 
@@ -1306,9 +1303,9 @@ int main(int argc, char **argv)
         // Render scene.
 		// 1 = left and 2 = right
 		vr::HmdVector3_t controllerPos = vrapp->GetControllerPos(1);
-		application->HandPosLeft = vec3(controllerPos.v[0], controllerPos.v[1], controllerPos.v[2]);
+		application->ControllerPosLeft = vec3(controllerPos.v[0], controllerPos.v[1], controllerPos.v[2]);
 		controllerPos = vrapp->GetControllerPos(2);
-		application->HandPosRight = vec3(controllerPos.v[0], controllerPos.v[1], controllerPos.v[2]);
+		application->ControllerPosRight = vec3(controllerPos.v[0], controllerPos.v[1], controllerPos.v[2]);
 
 		vrapp->render_to_VR(my_render);
 		vrapp->render_to_screen(1);//0..left eye, 1..right eye
