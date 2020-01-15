@@ -12,27 +12,6 @@ uniform float angle;
 out vec3 vertex_pos;
 out vec2 texcoord;
 
-/*vec4 getAttractedPosition() {
-    float maxDistance = 5.;
-    float minDistance = 0.02;
-    float earthMass = 1;
-    
-    vec4 pos = M * vec4(vertPos,1);
-    vec3 dir = SpherePos - pos.xyz;
-    float d = length(dir);
-    //if(d > maxDistance) return vec4(vertPos, 1.0);
-    //if(d < minDistance) d = minDistance;
-    
-    // TODO: improve formula for the force to actually represent proper gravitational force distribution
-    float a = 0.00004;
-    float force = (a) / pow(d,2);// clamp(a / pow(d,3), 0.,1.);
-    //force = pow(force, 1/12);
-    force = pow(force, 7/10.);
-    pos.xyz = clamp(pos.xyz + normalize(dir) * force, pos.xyz, (SpherePos-normalize(dir)*0.02)); // 0.02 is the scale factor of the sphere
-
-    return pos;
-}*/
-
 void main()
 {
     //vec3 attractedPosition = vertPos;

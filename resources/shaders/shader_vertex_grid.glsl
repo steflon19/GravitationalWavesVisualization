@@ -84,7 +84,6 @@ void main()
     //tpos/=1.0;
     vec4 spiralcolor = texture(tex2, tpos.xz * 0.5);
 
-	// spiralcolor = vec4(0);
 	float amplitudefact = bi_star_facts.x*bi_star_facts.y;
     float gw_force = spiralcolor.r*amplitudefact;
     

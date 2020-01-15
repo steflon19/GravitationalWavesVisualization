@@ -27,76 +27,67 @@ using namespace glm;
 #define BYTE bitset<8>
 #endif
 #define MSAAFACT 2
-OpenVRApplication* vrapp = NULL;
 
 #define SSBO_SIZE 4
+
+// Global objects
+OpenVRApplication * vrapp = NULL;
+bmpfont* font = new bmpfont();
 
 double get_last_elapsed_time()
 {
     static double lasttime = glfwGetTime();
     double actualtime = glfwGetTime();
-    double difference = actualtime- lasttime;
+    double difference = actualtime - lasttime;
     lasttime = actualtime;
     return difference;
 }
+
 class Camera
 {
 public:
-    glm::vec3 pos, rot;
-    int w, a, s, d, space, c, shift_active;
-    Camera()
-    {
-        w = a = s = d = 0;
-        rot = glm::vec3(0, 0, 0);
-        pos = glm::vec3(1.5, -0., -0.8);
-    }
-    glm::mat4 process(double ftime)
-    {
-        float speed = 0;
-        float speedY = 0;
-        if (shift_active == 0 && w == 1)
-        {
-            speed = 1*ftime;
-        }
-        else if (shift_active == 0 && s == 1)
-        {
-            speed = -1*ftime;
-        }
-        if (space == 1)
-        {
-            speedY = -1*ftime;
-        }
-        else if (c == 1)
-        {
-            speedY = 1*ftime;
-        }
-        float angle_y=0;
-        if (a == 1) {
-            angle_y = -1*ftime;
-        }
-        else if(d==1) {
-            angle_y = 1*ftime;
-        }
-        float angle_z = 0;
-        if (shift_active == 1 && w == 1) {
-            angle_z = 1*ftime;
-        }
-        else if(shift_active == 1 && s == 1) {
-            angle_z = -1*ftime;
-        }
-        rot.y += angle_y;
-        rot.x += angle_z;
-        glm::mat4 R_Y = glm::rotate(glm::mat4(1), rot.y, glm::vec3(0, 1, 0));
-        glm::mat4 R_X = glm::rotate(glm::mat4(1), rot.x, glm::vec3(1, 0, 0));
-        glm::vec4 dir = glm::vec4(0, speedY, speed,1);
-        dir = dir * R_Y * R_X;
-        pos += glm::vec3(dir.x, dir.y, dir.z);
-        glm::mat4 T = glm::translate(glm::mat4(1), pos);
-        return R_X * R_Y * T;
-    }
-};
+	glm::vec3 pos_, rot_;
+	int w, a, s, d, space, c, shift_active;
+	Camera()
+	{
+		w = a = s = d = space = c = shift_active = 0;
+		rot_ = glm::vec3(0, 0, 0);
+		pos_ = glm::vec3(0, 0, 0);
+	}
+	Camera(vec3 pos, vec3 rot)
+	{
+		w = a = s = d = space = c = shift_active = 0;
+		rot_ = rot;
+		pos_ = pos;
+	}
+	glm::mat4 process(double ftime)
+	{
+		float speed = 0;
+		float speedY = 0;
+		if (shift_active == 0 && w == 1) { speed = 1 * ftime; }
+		else if (shift_active == 0 && s == 1) { speed = -1 * ftime; }
 
-bmpfont *font = new bmpfont();
+		if (space == 1) { speedY = -1 * ftime; }
+		else if (c == 1) { speedY = 1 * ftime; }
+
+		float angle_y = 0;
+		if (a == 1) { angle_y = -1 * ftime; }
+		else if (d == 1) { angle_y = 1 * ftime; }
+		float angle_z = 0;
+		if (shift_active == 1 && w == 1) { angle_z = 1 * ftime; }
+		else if (shift_active == 1 && s == 1) { angle_z = -1 * ftime; }
+
+		rot_.y += angle_y;
+		rot_.x += angle_z;
+		glm::mat4 R_Y = glm::rotate(glm::mat4(1), rot_.y, glm::vec3(0, 1, 0));
+		glm::mat4 R_X = glm::rotate(glm::mat4(1), rot_.x, glm::vec3(1, 0, 0));
+		glm::vec4 dir = glm::vec4(0, speedY, speed, 1);
+		dir = dir * R_Y * R_X;
+		pos_ += glm::vec3(dir.x, dir.y, dir.z);
+		glm::mat4 T = glm::translate(glm::mat4(1), pos_);
+		return R_X * R_Y * T;
+	}
+};
 
 class Application : public EventCallbacks
 {
@@ -105,15 +96,16 @@ private:
 
     // sphere controls
     GLuint left_, right_, forward_, backward_, up_, down_;
-	float  earth_dir_x_, earth_dir_y_, earth_dir_z_;
-	vec3  manual_hand_pos_left_;
-	vec3  manual_hand_pos_right_;
+	vec3 earth_pos_, cam_start_pos_;
+	vec3 manual_hand_pos_left_;
+	vec3 manual_hand_pos_right_;
     
     Camera cam_;
 
 	string resourceDir = "";
 	string shaderDir = "";
 
+	float sphere_advance_val_ = 0.005f;
 	
 
 public:
@@ -121,7 +113,7 @@ public:
 
     // Our shader program
     std::shared_ptr<Program> prog_grid_x, prog_grid_y, prog_grid_z;
-	std::shared_ptr<Program> prog_earth, prog_moon, prog_gw_source;
+	std::shared_ptr<Program> prog_earth, prog_moon, prog_binary_system;
 	std::shared_ptr<Program> prog_hand_left, prog_hand_right;
     std::shared_ptr<Program> prog_skybox;
     std::shared_ptr<Program> prog_post_proc;
@@ -131,7 +123,7 @@ public:
     std::shared_ptr<Program> prog_box_DEBUG;
 
 	vec3 ControllerPosLeft = vec3(0);
-	vec3 ControllerPosRight = vec3(0);
+	vec3 controller_pos_right_ = vec3(0);
 
     // Contains vertex information for OpenGL
     GLuint VertexArrayID;
@@ -139,7 +131,7 @@ public:
     // Data necessary to give our box to OpenGL
     GLuint VertexBufferID, VertexColorIDBox, IndexBufferIDBox;
 
-	vec2 bi_star_facts = vec2(1, 1);
+	vec2 bi_star_facts = vec2(1, 0.1f);
 	float bi_star_angle_off = 0.2;
     //texture data
     GLuint Texture_grid, Texture_earth, Texture_sun, Texture_spiral, Texture_moon, Texture_marble;
@@ -147,49 +139,11 @@ public:
 
 	bool paused = false;
 	bool manualMode = true;
+	bool debugOn = false;
 
 	ssbo_data ssbo_CPUMEM;
 	GLuint ssbo_GPU_id;
 	GLuint compute_shader_pid;
-	void initComputeShader()
-	{
-		GLSL::checkVersion();
-		//load the compute shader
-		std::string ShaderString = readFileAsString(shaderDir + "/shader_compute.glsl");
-		const char* shader = ShaderString.c_str();
-		GLuint shader_compute = glCreateShader(GL_COMPUTE_SHADER);
-		glShaderSource(shader_compute, 1, &shader, nullptr);
-
-		GLint rc;
-		CHECKED_GL_CALL(glCompileShader(shader_compute));
-		CHECKED_GL_CALL(glGetShaderiv(shader_compute, GL_COMPILE_STATUS, &rc));
-		if (!rc)	//error compiling the shader file
-		{
-			GLSL::printShaderInfoLog(shader_compute);
-			std::cout << "Error compiling compute shader " << std::endl;
-			exit(1);
-		}
-
-		compute_shader_pid = glCreateProgram();
-		glAttachShader(compute_shader_pid, shader_compute);
-		glLinkProgram(compute_shader_pid);
-		glUseProgram(compute_shader_pid);
-
-		GLuint block_index = 0;
-		block_index = glGetProgramResourceIndex(compute_shader_pid, GL_SHADER_STORAGE_BLOCK, "shader_data");
-		GLuint ssbo_binding_point_index = 2;
-		glShaderStorageBlockBinding(compute_shader_pid, block_index, ssbo_binding_point_index);
-
-		for (int ii = 0; ii < SSBO_SIZE; ii++)
-		{
-			ssbo_CPUMEM.io[ii] = vec4(ii, 0.0, 0.0, 0.0);
-		}
-		glGenBuffers(1, &ssbo_GPU_id);
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(ssbo_data), &ssbo_CPUMEM, GL_DYNAMIC_COPY);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
-	}
 	void computeShader()
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, prog_compute_shader->gpuId);
@@ -229,124 +183,46 @@ public:
 
 		// utility
 		if (key == GLFW_KEY_R && action == GLFW_RELEASE) {
-			earth_dir_x_ = -1.5;
-			earth_dir_z_ = 0.2;
-			earth_dir_y_ = 0.;
+			earth_pos_ = vec3(vec3(-1.5f, -0.2f, 0.f));
 			manual_hand_pos_left_ = vec3(-2.f, 0.f, 0.1f);
 			manual_hand_pos_right_ = vec3(-1.f, 0.5f, 0.1f);
 		}
 
-		if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS)
-		{
-			cam_.shift_active = 1;
-		}
-		if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_RELEASE)
-		{
-			cam_.shift_active = 0;
-		}
+		if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS) { cam_.shift_active = 1; }
+		if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_RELEASE) { cam_.shift_active = 0; }
 
 		// CAMERA
 		// move left/right
-		if (key == GLFW_KEY_W && action == GLFW_PRESS)
-			{
-			cam_.w = 1;
-			}
-		if (key == GLFW_KEY_W && action == GLFW_RELEASE)
-			{
-			cam_.w = 0;
-			}
-		if (key == GLFW_KEY_S && action == GLFW_PRESS)
-			{
-			cam_.s = 1;
-			}
-		if (key == GLFW_KEY_S && action == GLFW_RELEASE)
-			{
-			cam_.s = 0;
-			}
+		if (key == GLFW_KEY_W && action == GLFW_PRESS) { cam_.w = 1; }
+		if (key == GLFW_KEY_W && action == GLFW_RELEASE) { cam_.w = 0; }
+		if (key == GLFW_KEY_S && action == GLFW_PRESS) { cam_.s = 1; }
+		if (key == GLFW_KEY_S && action == GLFW_RELEASE) { cam_.s = 0; }
 		// turn left/right
-		if (key == GLFW_KEY_A && action == GLFW_PRESS)
-			{
-			cam_.a = 1;
-			}
-		if (key == GLFW_KEY_A && action == GLFW_RELEASE)
-			{
-			cam_.a = 0;
-			}
-		if (key == GLFW_KEY_D && action == GLFW_PRESS)
-			{
-			cam_.d = 1;
-			}
-		if (key == GLFW_KEY_D && action == GLFW_RELEASE)
-			{
-			cam_.d = 0;
-			}
+		if (key == GLFW_KEY_A && action == GLFW_PRESS) { cam_.a = 1; }
+		if (key == GLFW_KEY_A && action == GLFW_RELEASE) { cam_.a = 0; }
+		if (key == GLFW_KEY_D && action == GLFW_PRESS) { cam_.d = 1; }
+		if (key == GLFW_KEY_D && action == GLFW_RELEASE) { cam_.d = 0; }
 		// move up/down
-		if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
-			{
-			cam_.space = 1;
-			}
-		if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE)
-			{
-			cam_.space = 0;
-			}
-		if (key == GLFW_KEY_C && action == GLFW_PRESS)
-			{
-			cam_.c = 1;
-			}
-		if (key == GLFW_KEY_C && action == GLFW_RELEASE)
-			{
-			cam_.c = 0;
-			}
+		if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) { cam_.space = 1; }
+		if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE) { cam_.space = 0; }
+		if (key == GLFW_KEY_C && action == GLFW_PRESS) { cam_.c = 1; }
+		if (key == GLFW_KEY_C && action == GLFW_RELEASE) { cam_.c = 0; }
 
 		// Sphere
-		if (key == GLFW_KEY_LEFT && action == GLFW_PRESS)
-		{
-			left_ = 1;
-		}
-		if (key == GLFW_KEY_LEFT && action == GLFW_RELEASE)
-			{
-			left_ = 0;
-			}
-		if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
-			{
-			right_ = 1;
-			}
-		if (key == GLFW_KEY_RIGHT && action == GLFW_RELEASE)
-			{
-			right_ = 0;
-			}
-		if (key == GLFW_KEY_UP && action == GLFW_PRESS)
-			{
-			forward_ = 1;
-			}
-		if (key == GLFW_KEY_UP && action == GLFW_RELEASE)
-			{
-			forward_ = 0;
-			}
-		if (key == GLFW_KEY_DOWN && action == GLFW_PRESS)
-			{
-			backward_ = 1;
-			}
-		if (key == GLFW_KEY_DOWN && action == GLFW_RELEASE)
-			{
-			backward_ = 0;
-			}
-		if (key == GLFW_KEY_O && action == GLFW_PRESS)
-			{
-			up_ = 1;
-			}
-		if (key == GLFW_KEY_O && action == GLFW_RELEASE)
-			{
-			up_ = 0;
-			}
-		if (key == GLFW_KEY_L && action == GLFW_PRESS)
-			{
-			down_ = 1;
-			}
-		if (key == GLFW_KEY_L && action == GLFW_RELEASE)
-			{
-			down_ = 0;
-			}
+		if (key == GLFW_KEY_LEFT && action == GLFW_PRESS) { left_ = 1; }
+		if (key == GLFW_KEY_LEFT && action == GLFW_RELEASE) { left_ = 0; }
+		if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS) { right_ = 1; }
+		if (key == GLFW_KEY_RIGHT && action == GLFW_RELEASE) { right_ = 0; }
+		if (key == GLFW_KEY_UP && action == GLFW_PRESS) { forward_ = 1; }
+		if (key == GLFW_KEY_UP && action == GLFW_RELEASE) { forward_ = 0; }
+		if (key == GLFW_KEY_DOWN && action == GLFW_PRESS) { backward_ = 1; }
+		if (key == GLFW_KEY_DOWN && action == GLFW_RELEASE) { backward_ = 0; }
+		if (key == GLFW_KEY_O && action == GLFW_PRESS) { up_ = 1; }
+		if (key == GLFW_KEY_O && action == GLFW_RELEASE) { up_ = 0; }
+		if (key == GLFW_KEY_L && action == GLFW_PRESS) { down_ = 1; }
+		if (key == GLFW_KEY_L && action == GLFW_RELEASE) { down_ = 0; }
+
+		// Binary System attributes
 		if (key == GLFW_KEY_Y && action == GLFW_RELEASE) { bi_star_facts.x += 0.1; cout << bi_star_facts.x << endl; }
 		if (key == GLFW_KEY_U && action == GLFW_RELEASE) { bi_star_facts.x -= 0.1;	cout << bi_star_facts.x << endl;			}
 		if (key == GLFW_KEY_H && action == GLFW_RELEASE) { bi_star_facts.y += 0.1; cout << bi_star_facts.y << endl;			}
@@ -358,16 +234,8 @@ public:
 		if (key == GLFW_KEY_4 && action == GLFW_RELEASE) { vrapp->eyedistance -= 0.01; cout << vrapp->eyedistance << endl; }
 
 		if (key == GLFW_KEY_P && action == GLFW_RELEASE) { paused = !paused; cout << "Sim " << (paused ? "Paused!" : "Resumed!") << endl; }
-		if (key == GLFW_KEY_M && action == GLFW_RELEASE) { switchSimulationMode(); }
+		if (key == GLFW_KEY_M && action == GLFW_RELEASE) { manualMode = !manualMode;  cout << "Simulation Mode: " << (manualMode ? "Manual." : "VR.") << endl; }
     }
-
-	void switchSimulationMode() {
-
-		manualMode = !manualMode;
-
-		cout << "Simulation mode switched to: >>" << (manualMode? "<< Manual!" : "<< VR!") << endl;
-
-	}
 
     // callback for the mouse when clicked move the triangle when helper functions
     // written
@@ -427,7 +295,6 @@ public:
     int grid_vertices_size;
 	void initGeom()
     {
-		// initComputeShader();
         // generating the grid
         std::vector<vec3> grid_x, grid_y, grid_z;
         float step = 0.125/2;
@@ -600,8 +467,8 @@ public:
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
-        GLuint Tex3Location = glGetUniformLocation(prog_gw_source->pid, "tex_sphere");
-        glUseProgram(prog_gw_source->pid);
+        GLuint Tex3Location = glGetUniformLocation(prog_binary_system->pid, "tex_sphere");
+        glUseProgram(prog_binary_system->pid);
         glUniform1i(Tex3Location, 0);
         
         
@@ -745,7 +612,6 @@ public:
 			default:
 				std::cerr << "Invalid call to initProgramm, invalid number of shaders: " << shaderv.size() << "!" << std::endl;
 		}
-
         
         if (!prog->init())
         {
@@ -783,9 +649,9 @@ public:
         GLSL::checkVersion();
 		setResourceDirectory(resDir);
         left_ =  right_ = forward_ = backward_ = 0;
-        earth_dir_x_ = -1.5;
-        earth_dir_z_ = 0.2;
-        earth_dir_y_ = 0.;
+		earth_pos_ = vec3(-1.5f, -0.2f, 0.f);
+		cam_start_pos_ = vec3(1.5, -0., -0.8);
+		cam_ = Camera(cam_start_pos_, vec3(0));
 		manual_hand_pos_left_ = vec3(-2.f, 0.f, 0.2f);
 		manual_hand_pos_right_ = vec3(-1.f, 0.f, 0.2f);
         // Set background color.
@@ -793,13 +659,13 @@ public:
         // Enable z-buffer test.
         glEnable(GL_DEPTH_TEST);
 
-        // Initialize the GLSL program.
+        // Initialize the GLSL programs.
         prog_grid_x = make_shared<Program>();
         prog_grid_y = make_shared<Program>();
         prog_grid_z = make_shared<Program>();
         prog_earth = make_shared<Program>();
         prog_moon = make_shared<Program>();
-		prog_gw_source = make_shared<Program>();
+		prog_binary_system = make_shared<Program>();
 		prog_post_proc = make_shared<Program>();
 
 		prog_hand_left = make_shared<Program>();
@@ -809,30 +675,28 @@ public:
         
         prog_box_DEBUG = make_shared<Program>();
         
+		// INIT Grid
         initProgram(prog_grid_x,
                     vector<string>({"/shader_vertex_grid.glsl", "/shader_fragment_grid.glsl", "/shader_geometry_x.glsl"}),
                     vector<string>({"P", "V", "M", "Ry","SpherePos", "MoonPos", "BPosOne", "BPosTwo", "earthScale","bi_star_facts" }));
-        
         initProgram(prog_grid_y,
                     vector<string>({"/shader_vertex_grid.glsl", "/shader_fragment_grid.glsl", "/shader_geometry_y.glsl"}),
                     vector<string>({"P", "V", "M", "Ry","SpherePos", "MoonPos", "BPosOne", "BPosTwo", "earthScale","bi_star_facts" }));
-        
         initProgram(prog_grid_z,
                     vector<string>({"/shader_vertex_grid.glsl", "/shader_fragment_grid.glsl", "/shader_geometry_z.glsl"}),
                     vector<string>({"P", "V", "M", "Ry","SpherePos", "MoonPos", "BPosOne", "BPosTwo", "earthScale","bi_star_facts" }));
-    
-    
+
+		// INIT Planet objects
         initProgram(prog_earth,
                     vector<string>({"/shader_vertex_earth.glsl", "/shader_fragment_sphere.glsl"}),
                     vector<string>({"P", "V", "M", "Ry","lightpos","colordot","bi_star_facts" }),
                     vector<string>({"vertPos", "vertNor", "vertTex"}));
-
 		initProgram(prog_moon,
 			vector<string>({ "/shader_vertex_earth.glsl", "/shader_fragment_sphere.glsl" }),
-			vector<string>({ "P", "V", "M", "Ry","lightpos" ,"colordot","bi_star_rad_fact" }),
+			vector<string>({ "P", "V", "M", "Ry","lightpos" ,"colordot","bi_star_facts" }),
 			vector<string>({ "vertPos", "vertNor", "vertTex" }));
 
-
+		// INIT Controller objects
 		initProgram(prog_hand_left,
 			vector<string>({ "/shader_vertex_sphere.glsl", "/shader_fragment_sphere.glsl" }),
 			vector<string>({ "P", "V", "M","lightpos" ,"colordot" }),
@@ -841,33 +705,35 @@ public:
 			vector<string>({ "/shader_vertex_sphere.glsl", "/shader_fragment_sphere.glsl" }),
 			vector<string>({ "P", "V", "M","lightpos" ,"colordot" }),
 			vector<string>({ "vertPos", "vertNor", "vertTex" }));
-                
-        initProgram(prog_gw_source,
+
+		// INIT binary system
+        initProgram(prog_binary_system,
             vector<string>({"/shader_vertex_sphere.glsl", "/shader_fragment_sphere.glsl"}),
             vector<string>({"P", "V", "M","lightpos" ,"colordot"  }),
             vector<string>({"vertPos","vertNor", "vertTex"}));
 
+		// INIT compute shader
 		initProgram(prog_compute_shader,
 			vector<string>({"/shader_compute.glsl"}),
 			vector<string>({"Ry", "HandPos", "bi_star_facts"}));
 
-//        initProgram(prog_box_DEBUG,
-//                    vector<string>({"angle"}),
-//                    vector<string>({"/shader_vertex_debug.glsl", "/shader_fragment_debug.glsl"}));
-//        prog_box_DEBUG->addUniform("angle");
-
+		// INIT post processing program
         initProgram(prog_post_proc,
                     vector<string>({ "/ppvert.glsl", "/ppfrag.glsl" }));
 
+		initProgram(prog_box_DEBUG,
+			vector<string>({"/shader_vertex_debug.glsl", "/shader_fragment_debug.glsl"}),
+			vector<string>({"P", "V", "M","angle"}));
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     }
     
+	// Utility print vector functions
     void printVec(vec3 vec, std::string name = "vec3") {
         std::cout << name << " x: " << vec.x << " y: " << vec.y << " z: " << vec.z << std::endl;
     }
     void printVec(vec4 vec, std::string name = "vec4") {
-        std::cout << name << " x: " << vec.x << " y: " << vec.y << " z: " << vec.z << " [3]: " << vec[3] << std::endl;
+        std::cout << name << " x: " << vec.x << " y: " << vec.y << " z: " << vec.z << " w: " << vec.w << " [3]: " << vec[3] << std::endl;
     }
     
     /****DRAW
@@ -887,7 +753,6 @@ public:
         //GLenum buffers[] = { GL_COLOR_ATTACHMENT0 };
         //glDrawBuffers(1, buffers);
         
-        //glBindFramebuffer(GL_FRAMEBUFFER, 0);
         double frametime = get_last_elapsed_time();
 
         // Get current frame buffer size.
@@ -917,83 +782,80 @@ public:
 			currenteye = vr::Eye_Left;
 		else
 			currenteye = vr::Eye_Right;
-		//cout << euler.x << "\t" << euler.y << "\t" << euler.z << endl;
 		if (!vrapp->get_projection_matrix(currenteye, 0.000001f, 4000.0f, P))
-			P = glm::perspective((float)(3.14159 / 4.), (float)((float)width / (float)height), 0.000001f, 4000.0f); //so much type casting... GLM metods are quite funny ones
+			P = glm::perspective((float)((float)PI / 4.), (float)((float)width / (float)height), 0.000001f, 4000.0f);
 
         
-        static float ang = 0.;
+        static float angle = 0.;
 		if (!paused) {
-			ang += sin(frametime* bi_star_facts.y);
+			angle += sin(frametime* bi_star_facts.y);
 		}
-        mat4 Ry = rotate(mat4(1), ang, vec3(0, 1, 0));
+        mat4 Ry = rotate(mat4(1), angle, vec3(0, 1, 0));
 		float angle_offset = 0.0;
-		mat4 Ry_bistars = rotate(mat4(1), -ang * 0.5f + bi_star_angle_off, vec3(0, 1, 0));
+		mat4 Ry_bistars = rotate(mat4(1), -angle * 0.5f + bi_star_angle_off, vec3(0, 1, 0));
 
-	
 		float bi_star_distance = 0.28 * bi_star_facts.x;
 
-
-		prog_gw_source->bind();
+		// Render binary system
+		prog_binary_system->bind();
 		//star 1:
-		glUniformMatrix4fv(prog_gw_source->getUniform("P"), 1, GL_FALSE, &P[0][0]);
-		glUniformMatrix4fv(prog_gw_source->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+		glUniformMatrix4fv(prog_binary_system->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(prog_binary_system->getUniform("V"), 1, GL_FALSE, &V[0][0]);
 		M = mat4(1);
 		mat4 transM = translate(mat4(1), vec3(bi_star_distance*0.5,0,0));
 		M = Ry_bistars * transM * scale(mat4(1), vec3(.02, .02, 0.02));
 		vec3 bStarOne = vec3(M[3]);
-		glUniformMatrix4fv(prog_gw_source->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		glUniformMatrix4fv(prog_binary_system->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		lightpos.w = 1;
-		glUniform4fv(prog_gw_source->getUniform("lightpos"), 1, &lightpos.x);
+		glUniform4fv(prog_binary_system->getUniform("lightpos"), 1, &lightpos.x);
 		colordot = vec3(0.8, 0.9, 2.6);
-		glUniform3fv(prog_gw_source->getUniform("colordot"), 1, &colordot.x);
+		glUniform3fv(prog_binary_system->getUniform("colordot"), 1, &colordot.x);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, Texture_sun);
-		shape_gw_source_->draw(prog_gw_source, false);
+		shape_gw_source_->draw(prog_binary_system, false);
 		//star 2:
 		transM = translate(mat4(1), vec3(-bi_star_distance * 0.5, 0, 0));
 		M = Ry_bistars *transM * scale(mat4(1), vec3(.02, .02, 0.02));
 		vec3 bStarTwo = vec3(M[3]);
-		glUniformMatrix4fv(prog_gw_source->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		glUniformMatrix4fv(prog_binary_system->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		colordot = vec3(1.1, 1.9, 1.0);
-		glUniform3fv(prog_gw_source->getUniform("colordot"), 1, &colordot.x);
-		shape_gw_source_->draw(prog_gw_source, false);
-		prog_gw_source->unbind();
+		glUniform3fv(prog_binary_system->getUniform("colordot"), 1, &colordot.x);
+		shape_gw_source_->draw(prog_binary_system, false);
+		prog_binary_system->unbind();
 
-
+		// Render Earth
         prog_earth->bind();
         glUniformMatrix4fv(prog_earth->getUniform("P"), 1, GL_FALSE, &P[0][0]);
         glUniformMatrix4fv(prog_earth->getUniform("V"), 1, GL_FALSE, &V[0][0]);
         
-        float advanceVal = 0.005;
+        float sphere_advance_val_ = 0.005;
 		if (!manualMode)
 		{
 			if (left_ == 1) {
-				earth_dir_x_ -= advanceVal;
+				earth_pos_.x -= sphere_advance_val_;
 			}
 			else if (right_ == 1) {
-				earth_dir_x_ += advanceVal;
+				earth_pos_.x += sphere_advance_val_;
 			}
 			if (forward_ == 1) {
-				earth_dir_z_ -= advanceVal;
+				earth_pos_.z -= sphere_advance_val_;
 			}
 			else if (backward_ == 1) {
-				earth_dir_z_ += advanceVal;
+				earth_pos_.z += sphere_advance_val_;
 			}
 			if (up_ == 1) {
-				earth_dir_y_ += advanceVal;
+				earth_pos_.y += sphere_advance_val_;
 			}
 			else if (down_ == 1) {
-				earth_dir_y_ -= advanceVal;
+				earth_pos_.y -= sphere_advance_val_;
 			}
 		}
         
-        vec3 moveSphere = vec3(earth_dir_x_, earth_dir_y_, earth_dir_z_);
-        mat4 translateSphere = translate(mat4(1), moveSphere);
+        mat4 translateSphere = translate(mat4(1), earth_pos_);
         float earthScale = 0.07;
-        mat4 scaleM = scale(mat4(1), vec3(earthScale));
+        mat4 earthScaleM = scale(mat4(1), vec3(earthScale));
         M = mat4(1);
-        M = translateSphere * rotate(mat4(1),-3.1415926f,vec3(0,1,0)) * scaleM;
+		M = translateSphere * rotate(mat4(1), (float) -PI, vec3(0, 1, 0)) * earthScaleM;
         mat4 earthMatrix = M;
         glUniformMatrix4fv(prog_earth->getUniform("M"), 1, GL_FALSE, &M[0][0]);
         glUniformMatrix4fv(prog_earth->getUniform("Ry"), 1, GL_FALSE, &Ry[0][0]);
@@ -1003,17 +865,15 @@ public:
 		colordot = vec3(1);
 		glUniform3fv(prog_earth->getUniform("colordot"), 1, &colordot.x);
 		glUniform2fv(prog_earth->getUniform("bi_star_facts"), 1,&bi_star_facts.x);
-//        glUniform3fv(prog_earth->getUniform("campos"), 1, &cam_.pos[0]);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, Texture_earth);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, Texture_spiral);
-        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         shape_earth_->draw(prog_earth,false);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         prog_earth->unbind();
-        
-        // moon
+
+		// Render Moon
         prog_moon->bind();
         glUniformMatrix4fv(prog_moon->getUniform("P"), 1, GL_FALSE, &P[0][0]);
         glUniformMatrix4fv(prog_moon->getUniform("V"), 1, GL_FALSE, &V[0][0]);
@@ -1023,7 +883,6 @@ public:
         mat4 Ryz = rotate(mat4(1), ang_moon, vec3(0, 1, 1));
         M = earthMatrix * Ryz * translate(mat4(1), vec3(2., 0, 0)) * Ry * scale(mat4(1), vec3(0.27));
         vec3 moonPos = vec3(M[3]);
-//        M *= ;
         glUniformMatrix4fv(prog_moon->getUniform("M"), 1, GL_FALSE, &M[0][0]);
         glUniformMatrix4fv(prog_moon->getUniform("Ry"), 1, GL_FALSE, &Ry[0][0]);
 		lightpos.w = 0;
@@ -1044,7 +903,7 @@ public:
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         
-        //M = mat4(1);
+		// Render Grid
         M = mat4(1);//scale(mat4(1), vec3(0.5,0.5,0.5));
         prog_grid_x->bind();
         glActiveTexture(GL_TEXTURE0);
@@ -1056,7 +915,7 @@ public:
         glUniformMatrix4fv(prog_grid_x->getUniform("V"), 1, GL_FALSE, &V[0][0]);
         glUniformMatrix4fv(prog_grid_x->getUniform("M"), 1, GL_FALSE, &M[0][0]);
         glUniformMatrix4fv(prog_grid_x->getUniform("Ry"), 1, GL_FALSE, &Ry[0][0]);
-        glUniform3fv(prog_grid_x->getUniform("SpherePos"), 1, &moveSphere[0]);
+        glUniform3fv(prog_grid_x->getUniform("SpherePos"), 1, &earth_pos_[0]);
 		glUniform3fv(prog_grid_x->getUniform("MoonPos"), 1, &moonPos[0]);
 		glUniform3fv(prog_grid_x->getUniform("BPosOne"), 1, &bStarOne[0]);
 		glUniform3fv(prog_grid_x->getUniform("BPosTwo"), 1, &bStarTwo[0]);
@@ -1076,7 +935,7 @@ public:
         glUniformMatrix4fv(prog_grid_y->getUniform("V"), 1, GL_FALSE, &V[0][0]);
         glUniformMatrix4fv(prog_grid_y->getUniform("M"), 1, GL_FALSE, &M[0][0]);
         glUniformMatrix4fv(prog_grid_y->getUniform("Ry"), 1, GL_FALSE, &Ry[0][0]);
-        glUniform3fv(prog_grid_y->getUniform("SpherePos"), 1, &moveSphere[0]);
+        glUniform3fv(prog_grid_y->getUniform("SpherePos"), 1, &earth_pos_[0]);
         glUniform3fv(prog_grid_y->getUniform("MoonPos"), 1, &moonPos[0]);
         glUniform1f(prog_grid_y->getUniform("earthScale"), earthScale);
 		glUniform2fv(prog_grid_y->getUniform("bi_star_facts"), 1, &bi_star_facts.x);
@@ -1094,7 +953,7 @@ public:
         glUniformMatrix4fv(prog_grid_z->getUniform("V"), 1, GL_FALSE, &V[0][0]);
         glUniformMatrix4fv(prog_grid_z->getUniform("M"), 1, GL_FALSE, &M[0][0]);
         glUniformMatrix4fv(prog_grid_z->getUniform("Ry"), 1, GL_FALSE, &Ry[0][0]);
-        glUniform3fv(prog_grid_z->getUniform("SpherePos"), 1, &moveSphere[0]);
+        glUniform3fv(prog_grid_z->getUniform("SpherePos"), 1, &earth_pos_[0]);
         glUniform3fv(prog_grid_z->getUniform("MoonPos"), 1, &moonPos[0]);
         glUniform1f(prog_grid_z->getUniform("earthScale"), earthScale);
 		glUniform2fv(prog_grid_z->getUniform("bi_star_facts"), 1, &bi_star_facts.x);
@@ -1102,7 +961,8 @@ public:
         glDrawArrays(GL_LINES, 0, grid_vertices_size);
         prog_grid_z->unbind();
 
-		float handScale = 0.008f;
+		// Render Controllers
+		float controllerScale = 0.008f;
 		prog_hand_left->bind();
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, Texture_marble);
@@ -1114,7 +974,7 @@ public:
 		glUniform3fv(prog_hand_left->getUniform("colordot"), 1, &colordot.x);
 
 		M = mat4(1);
-		M = translate(mat4(1), ControllerPosLeft) * scale(mat4(1), vec3(handScale));
+		M = translate(mat4(1), ControllerPosLeft) * scale(mat4(1), vec3(controllerScale));
 		glUniformMatrix4fv(prog_hand_left->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 
 		// shape_hand_left->draw(prog_hand_left, false);
@@ -1134,33 +994,33 @@ public:
 		// TODO: find actual values for proper translation to "ingame hmd space"
 		// pos = glm::vec3(1.5, -0., -0.8);
 		if (!manualMode) {
-			vec3 transVec = vec3(-1.5f, -1.2f, 0.5f);// * 1.f/handScale;
-			M = translate(mat4(1), ControllerPosRight * (1.f) + transVec);// *translate(mat4(1), transVec);
+			vec3 transVec = vec3(-1.5f, -1.2f, 0.5f);// * 1.f/controllerScale;
+			M = translate(mat4(1), controller_pos_right_ * (1.f) + transVec);// *translate(mat4(1), transVec);
 		}
 		else {
 			if (left_ == 1) {
-				manual_hand_pos_right_.x -= advanceVal;
+				manual_hand_pos_right_.x -= sphere_advance_val_;
 			}
 			else if (right_ == 1) {
-				manual_hand_pos_right_.x += advanceVal;
+				manual_hand_pos_right_.x += sphere_advance_val_;
 			}
 			if (forward_ == 1) {
-				manual_hand_pos_right_.z -= advanceVal;
+				manual_hand_pos_right_.z -= sphere_advance_val_;
 			}
 			else if (backward_ == 1) {
-				manual_hand_pos_right_.z += advanceVal;
+				manual_hand_pos_right_.z += sphere_advance_val_;
 			}
 			if (up_ == 1) {
-				manual_hand_pos_right_.y += advanceVal;
+				manual_hand_pos_right_.y += sphere_advance_val_;
 			}
 			else if (down_ == 1) {
-				manual_hand_pos_right_.y -= advanceVal;
+				manual_hand_pos_right_.y -= sphere_advance_val_;
 			}
 			M = translate(mat4(1), manual_hand_pos_right_);
 		}
-		M *= scale(mat4(1), vec3(handScale));
+		M *= scale(mat4(1), vec3(controllerScale));
 		mat4 handPosRightMat = M;
-		vec3 handPosRightVec = vec3((V * M)[3]);
+		vec3 handPosRightVec = vec3(M[3]); //vec3((V * M)[3]); // TODO: check why multiplied with V
 
 		float amplitude = 0.f;
 
@@ -1177,9 +1037,8 @@ public:
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, Texture_spiral);		
 		glUniformMatrix4fv(prog_compute_shader->getUniform("Ry"), 1, GL_FALSE, &Ry[0][0]);
-		glUniform3fv(prog_compute_shader->getUniform("HandPos"), 1, &manual_hand_pos_right_.x);
+		glUniform3fv(prog_compute_shader->getUniform("HandPos"), 1, &handPosRightVec.x);
 		glUniform2fv(prog_compute_shader->getUniform("bi_star_facts"), 1, &bi_star_facts.x);
-		// prog_compute_shader->unbind(); //???
 		// send additional data "down" to gpu with the buffer.
 		//ssbo_CPUMEM.io[0] = vec4(-cam_.pos, 0);
 		computeShader(); // prog_compute_shader->computeComputeShader();
@@ -1194,7 +1053,7 @@ public:
 		// round(amplitude * 100.f) / 100.f
 		string amplString = to_string(round(amplitude * 10000.f) / 10000.f);
 		amplString = amplString.erase(amplString.find_last_not_of('0') + 1, std::string::npos);
-		cout << amplString << endl;// " ----- ";
+		// cout << amplString << endl;// " ----- ";
 		if (!manualMode) {
 			font->draw(0.2f, 0.35f, 0.3f, (string)"Ampl.: " + amplString, 1.f, 1.f, 1.f);
 		}
@@ -1207,16 +1066,20 @@ public:
 		}
 		font->draw();
 
-//        prog_box_DEBUG->bind();
-//        P = V = mat4(1);
-//        M = scale(mat4(1),vec3(1.,aspect,1.));
-//        glUniformMatrix4fv(prog_box_DEBUG->getUniform("P"), 1, GL_FALSE, &P[0][0]);
-//        glUniformMatrix4fv(prog_box_DEBUG->getUniform("V"), 1, GL_FALSE, &V[0][0]);
-//        glUniformMatrix4fv(prog_box_DEBUG->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-//        glUniform1f(prog_box_DEBUG->getUniform("angle"), ang);
-//        glBindVertexArray(VAODebug);
-//        glDrawArrays(GL_TRIANGLES, 0, 18);
-//        prog_box_DEBUG->unbind();
+		if (debugOn) {
+			prog_box_DEBUG->bind();
+			P = V = mat4(1);
+			M = scale(mat4(1), vec3(1., aspect, 1.));
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, Texture_spiral);
+			glUniformMatrix4fv(prog_box_DEBUG->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+			glUniformMatrix4fv(prog_box_DEBUG->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+			glUniformMatrix4fv(prog_box_DEBUG->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+			glUniform1f(prog_box_DEBUG->getUniform("angle"), angle);
+			glBindVertexArray(VAODebug);
+			glDrawArrays(GL_TRIANGLES, 0, 18);
+			prog_box_DEBUG->unbind();
+		}
         
         // fix this, its not rendering anything??
 //        prog_skybox->bind();
@@ -1305,7 +1168,7 @@ int main(int argc, char **argv)
 		vr::HmdVector3_t controllerPos = vrapp->GetControllerPos(1);
 		application->ControllerPosLeft = vec3(controllerPos.v[0], controllerPos.v[1], controllerPos.v[2]);
 		controllerPos = vrapp->GetControllerPos(2);
-		application->ControllerPosRight = vec3(controllerPos.v[0], controllerPos.v[1], controllerPos.v[2]);
+		application->controller_pos_right_ = vec3(controllerPos.v[0], controllerPos.v[1], controllerPos.v[2]);
 
 		vrapp->render_to_VR(my_render);
 		vrapp->render_to_screen(1);//0..left eye, 1..right eye
