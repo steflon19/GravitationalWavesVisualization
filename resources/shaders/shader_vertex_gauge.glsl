@@ -4,6 +4,7 @@ layout(location = 0) in vec3 vertPos;
 
 uniform mat4 P;
 uniform mat4 V;
+uniform mat4 M;
 out vec3 vertex_pos;
 out vec3 camvertex_pos;
 

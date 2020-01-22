@@ -1,11 +1,11 @@
 #version 330 core
-layout (lines) in;
+layout (points) in;
 layout (triangle_strip, max_vertices = 4) out;
 
 in vec3 vertex_pos[];
 in vec3 scolor[];
 in vec3 camvertex_pos[];
-out vec3 camvertex_pos_g;
+out vec3 camvertex_pos_g; 
 out vec2 texcoord;
 out vec3 fcolor;
 

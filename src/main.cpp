@@ -118,6 +118,7 @@ public:
     std::shared_ptr<Program> prog_skybox;
     std::shared_ptr<Program> prog_post_proc;
 
+	std::shared_ptr<Program> prog_gauge;
 	std::shared_ptr<Program> prog_compute_shader;
     
     std::shared_ptr<Program> prog_debug;
@@ -671,6 +672,7 @@ public:
 		prog_hand_left = make_shared<Program>();
 		prog_hand_right = make_shared<Program>();
 
+		prog_gauge = make_shared<Program>();
 		prog_compute_shader = make_shared<Program>();
         
         prog_debug = make_shared<Program>();
@@ -712,10 +714,15 @@ public:
             vector<string>({"P", "V", "M","lightpos" ,"colordot"  }),
             vector<string>({"vertPos","vertNor", "vertTex"}));
 
-		// INIT compute shader
-		initProgram(prog_compute_shader,
-			vector<string>({"/shader_compute.glsl"}),
-			vector<string>({"Ry", "HandPos", "bi_star_facts"}));
+		//// INIT compute shader
+		//initProgram(prog_compute_shader,
+		//	vector<string>({"/shader_compute.glsl"}),
+		//	vector<string>({"Ry", "HandPos", "bi_star_facts"}));
+
+		// INIT gauge
+		initProgram(prog_gauge,
+			vector<string>({ "/shader_vertex_gauge.glsl"/*, "/shader_fragment_gauge.glsl"*/, "/shader_geometry_gauge.glsl" }),
+			vector<string>({ "P", "V", "M", "angle" }));
 
 		// INIT post processing program
         initProgram(prog_post_proc,

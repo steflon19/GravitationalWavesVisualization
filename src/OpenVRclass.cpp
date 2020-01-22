@@ -351,7 +351,7 @@ OpenVRApplication::OpenVRApplication()
 		std::cout << "Error : OpenVR Runtime not detected on the system" << std::endl;
 	}
 
-	OpenVRApplication::initVR();
+	//OpenVRApplication::initVR();
 
 	if (!hmd)
 	{
