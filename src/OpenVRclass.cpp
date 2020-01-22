@@ -217,6 +217,7 @@ void OpenVRApplication::HandleVRInput(const vr::VREvent_t& event) {
 	{
 		// TODO: maybe some other stuff here
 	default:
+		std::cout << "VR event " << event.eventType << std::endl;
 		HandleVRButtonEvent(event);
 	}
 }

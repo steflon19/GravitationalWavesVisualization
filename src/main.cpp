@@ -120,7 +120,7 @@ public:
 
 	std::shared_ptr<Program> prog_compute_shader;
     
-    std::shared_ptr<Program> prog_box_DEBUG;
+    std::shared_ptr<Program> prog_debug;
 
 	vec3 ControllerPosLeft = vec3(0);
 	vec3 controller_pos_right_ = vec3(0);
@@ -139,11 +139,9 @@ public:
 
 	bool paused = false;
 	bool manualMode = true;
-	bool debugOn = false;
 
 	ssbo_data ssbo_CPUMEM;
 	GLuint ssbo_GPU_id;
-	GLuint compute_shader_pid;
 	void computeShader()
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, prog_compute_shader->gpuId);
@@ -450,9 +448,10 @@ public:
         Tex2Location = glGetUniformLocation(prog_moon->pid, "tex_spiral");
         glUniform1i(Tex2Location, 1);
 
-		/*glUseProgram(compute_shader_pid);
-		Tex2Location = glGetUniformLocation(compute_shader_pid, "tex_spiral");
-		glUniform1i(Tex2Location, 0);*/
+		glUseProgram(prog_compute_shader->pid);
+		Tex1Location = glGetUniformLocation(prog_compute_shader->pid, "tex");
+		glUniform1i(Tex1Location, 0);
+		glUseProgram(0);
         
         //texture sun
         str = resourceDir + "/sun.jpg";
@@ -489,10 +488,10 @@ public:
         glUseProgram(prog_moon->pid);
         glUniform1i(Tex3Location, 0);
         
-//        glBindVertexArray(0);
+        glBindVertexArray(0);
 
 //        texture spiral
-		str = resourceDir + "/double_spiral.png";
+		str = resourceDir + "/spiral_col.png";//"/double_spiral.png";
 		strcpy(filepath, str.c_str());
 		data = stbi_load(filepath, &width, &height, &channels, 4);
 		glGenTextures(1, &Texture_spiral);
@@ -504,9 +503,10 @@ public:
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
-		GLuint Tex4Location = glGetUniformLocation(prog_box_DEBUG->pid, "tex");
-		glUseProgram(prog_box_DEBUG->pid);
-		glUniform1i(Tex4Location, 0);
+		//GLuint Tex4Location = glGetUniformLocation(prog_debug->pid, "tex");
+		//glUseProgram(prog_debug->pid);
+		//glUniform1i(Tex4Location, 0);
+
 		//        texture marble
 		str = resourceDir + "/marble.jpg";
 		memset(filepath, 0, sizeof(filepath));
@@ -673,7 +673,7 @@ public:
 
 		prog_compute_shader = make_shared<Program>();
         
-        prog_box_DEBUG = make_shared<Program>();
+        prog_debug = make_shared<Program>();
         
 		// INIT Grid
         initProgram(prog_grid_x,
@@ -721,9 +721,9 @@ public:
         initProgram(prog_post_proc,
                     vector<string>({ "/ppvert.glsl", "/ppfrag.glsl" }));
 
-		initProgram(prog_box_DEBUG,
+		initProgram(prog_debug,
 			vector<string>({"/shader_vertex_debug.glsl", "/shader_fragment_debug.glsl"}),
-			vector<string>({"P", "V", "M","angle"}));
+			vector<string>({"P", "V", "M", "Ry", "angle"}));
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     }
@@ -735,6 +735,12 @@ public:
     void printVec(vec4 vec, std::string name = "vec4") {
         std::cout << name << " x: " << vec.x << " y: " << vec.y << " z: " << vec.z << " w: " << vec.w << " [3]: " << vec[3] << std::endl;
     }
+
+	string RoundToString(float number, int digits) {
+		float powFact = pow(10.f, digits);
+		string numString = to_string(round(number *  powFact) / powFact);
+		return numString.erase(numString.find_last_not_of('0') + 1, std::string::npos);
+	}
     
     /****DRAW
     This is the most important function in your program - this is where you
@@ -803,7 +809,7 @@ public:
 		glUniformMatrix4fv(prog_binary_system->getUniform("V"), 1, GL_FALSE, &V[0][0]);
 		M = mat4(1);
 		mat4 transM = translate(mat4(1), vec3(bi_star_distance*0.5,0,0));
-		M = Ry_bistars * transM * scale(mat4(1), vec3(.02, .02, 0.02));
+		M = Ry_bistars * transM * scale(mat4(1), vec3(0.02));
 		vec3 bStarOne = vec3(M[3]);
 		glUniformMatrix4fv(prog_binary_system->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		lightpos.w = 1;
@@ -815,7 +821,7 @@ public:
 		shape_gw_source_->draw(prog_binary_system, false);
 		//star 2:
 		transM = translate(mat4(1), vec3(-bi_star_distance * 0.5, 0, 0));
-		M = Ry_bistars *transM * scale(mat4(1), vec3(.02, .02, 0.02));
+		M = Ry_bistars *transM * scale(mat4(1), vec3(0.02));
 		vec3 bStarTwo = vec3(M[3]);
 		glUniformMatrix4fv(prog_binary_system->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		colordot = vec3(1.1, 1.9, 1.0);
@@ -1043,6 +1049,7 @@ public:
 		//ssbo_CPUMEM.io[0] = vec4(-cam_.pos, 0);
 		computeShader(); // prog_compute_shader->computeComputeShader();
 		amplitude = ssbo_CPUMEM.io[0].w;
+		cout << "UL.r " << ssbo_CPUMEM.io[0].y << " LR.r " << ssbo_CPUMEM.io[0].z << endl;
 		//amplitude = ssbo_CPUMEM.io[0].x;
 		//printVec(ssbo_CPUMEM.io[0], "cpumem io vector: ");
 		prog_compute_shader->unbind();
@@ -1050,35 +1057,38 @@ public:
 
 
 		// Drawing text on hand position (previous M). extract to function and add for both hands?
-		// round(amplitude * 100.f) / 100.f
-		string amplString = to_string(round(amplitude * 10000.f) / 10000.f);
-		amplString = amplString.erase(amplString.find_last_not_of('0') + 1, std::string::npos);
+		// round(amplitude * 10000.f) / 10000.f
+		string amplString = RoundToString(amplitude, 4);
+		static float minAmpl = 1.f;
+		if (minAmpl > amplitude) minAmpl = amplitude;
+		string minAmplString = RoundToString(minAmpl, 4);
+		static float maxAmpl = 0.f;
+		if (maxAmpl < amplitude) maxAmpl = amplitude;
+		string maxAmplString = RoundToString(maxAmpl, 4);
 		// cout << amplString << endl;// " ----- ";
-		if (!manualMode) {
-			font->draw(0.2f, 0.35f, 0.3f, (string)"Ampl.: " + amplString, 1.f, 1.f, 1.f);
-		}
-		else {
-			vec3 handTextOffset = vec3(0.015f, 0.015f, 0.f);
-			vec4 screenpos = P * V * vec4(manual_hand_pos_right_ + handTextOffset, 1);
-			screenpos.x /= screenpos.w;
-			screenpos.y /= screenpos.w;
-			font->draw(screenpos.x, screenpos.y + 0.05f, 0.3f, (string)"Ampl.: " + amplString, 1.f, 1.f, 1.f);
-		}
+
+		vec3 handTextOffset = vec3(0.015f, 0.015f, 0.f);
+		vec4 screenpos = P * V * vec4(handPosRightVec + handTextOffset, 1);
+		screenpos.x /= screenpos.w;
+		screenpos.y /= screenpos.w;
+		font->draw(screenpos.x, screenpos.y + 0.05f, 0.3f, (string)"Current: " + amplString, 1.f, 1.f, 1.f);
+		font->draw(screenpos.x, screenpos.y - 0.05f, 0.3f, (string)"Max: " + maxAmplString, 1.f, 1.f, 1.f);
+		font->draw(screenpos.x, screenpos.y - 0.15f, 0.3f, (string)"Min: " + minAmplString, 1.f, 1.f, 1.f);
 		font->draw();
 
-		if (debugOn) {
-			prog_box_DEBUG->bind();
+		if (false) {
+			prog_debug->bind();
 			P = V = mat4(1);
 			M = scale(mat4(1), vec3(1., aspect, 1.));
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, Texture_spiral);
-			glUniformMatrix4fv(prog_box_DEBUG->getUniform("P"), 1, GL_FALSE, &P[0][0]);
-			glUniformMatrix4fv(prog_box_DEBUG->getUniform("V"), 1, GL_FALSE, &V[0][0]);
-			glUniformMatrix4fv(prog_box_DEBUG->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-			glUniform1f(prog_box_DEBUG->getUniform("angle"), angle);
+			glUniformMatrix4fv(prog_debug->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+			glUniformMatrix4fv(prog_debug->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+			glUniformMatrix4fv(prog_debug->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+			glUniformMatrix4fv(prog_debug->getUniform("Ry"), 1, GL_FALSE, &Ry[0][0]);
 			glBindVertexArray(VAODebug);
 			glDrawArrays(GL_TRIANGLES, 0, 18);
-			prog_box_DEBUG->unbind();
+			prog_debug->unbind();
 		}
         
         // fix this, its not rendering anything??
@@ -1147,7 +1157,7 @@ int main(int argc, char **argv)
 	windowManager->init(vrapp->get_render_width(), vrapp->get_render_height());
 
 	font->init();
-	font->set_font_size(.08f);
+	font->set_font_size(.07f);
 
 	windowManager->setEventCallbacks(application);
 	application->windowManager = windowManager;

@@ -11,6 +11,7 @@ out vec3 frag_pos;
 out vec3 vertex_normal;
 out vec2 vertex_tex;
 
+// TODO: move rotation to CPU
 mat4 rotationX( float angle ) {
     return mat4(    1.0,              0,              0,        0,
                       0,     cos(angle),    -sin(angle),        0,
