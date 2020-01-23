@@ -18,6 +18,7 @@ void main()
 	if (color.r == 0 && color.g == 0 && color.b == 0) {
         //discard;
     }
+	//color = vec4(1,1,1,1);
 	//color = texture(tex, texcoord);
 
 }

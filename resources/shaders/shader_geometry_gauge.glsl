@@ -16,23 +16,23 @@ void main() {
 
     Pos -= (right * 0.5);
     gl_Position = gVP * vec4(Pos, 1.0);
-    TexCoord = vec2(0.0, 0.0);
+    TexCoord = vec2(1.0, 1.0);
     EmitVertex();
 
     Pos.y += 1.0;
     gl_Position = gVP * vec4(Pos, 1.0);
-    TexCoord = vec2(0.0, 1.0);
+    TexCoord = vec2(1.0, 0.0);
     EmitVertex();
 
 	Pos.y -= 1.0;
     Pos += right;
     gl_Position = gVP * vec4(Pos, 1.0);
-    TexCoord = vec2(1.0, 0.0);
+    TexCoord = vec2(0.0, 1.0);
     EmitVertex();
 
 	Pos.y += 1.0;
     gl_Position = gVP * vec4(Pos, 1.0);
-    TexCoord = vec2(1.0, 1.0);
+    TexCoord = vec2(0.0, 0.0);
     EmitVertex();
 
 	EndPrimitive();

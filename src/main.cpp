@@ -1156,7 +1156,7 @@ public:
 		glUniformMatrix4fv(prog_gauge->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		// TODO: probably get proper Rotation matrix here
 		glUniformMatrix4fv(prog_gauge->getUniform("RotM"), 1, GL_FALSE, &Ry[0][0]);
-		glUniformMatrix4fv(prog_gauge->getUniform("gVP"), 1, GL_FALSE, &(V*P)[0][0]);
+		glUniformMatrix4fv(prog_gauge->getUniform("gVP"), 1, GL_FALSE, &(P*V)[0][0]);
 		vec3 camPosVec = vec3(camPos[3]);
 		glUniform3fv(prog_gauge->getUniform("CamPos"), 1, &camPosVec.x);
 		glUniform3fv(prog_gauge->getUniform("HandPos"), 1, &handPosRightVec.x);
