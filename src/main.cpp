@@ -136,6 +136,7 @@ public:
 	float bi_star_angle_off = 0.2;
     //texture data
     GLuint Texture_grid, Texture_earth, Texture_sun, Texture_spiral, Texture_moon, Texture_marble;
+	GLuint Texture_gauge, Texture_indicator;
     GLuint cubemapTexture, FBO_MSAA, FBO_MSAA_depth, FBO_MSAA_color, VertexArrayIDBox, VertexBufferIDBox;
 
 	bool paused = false;
@@ -145,6 +146,10 @@ public:
 	GLuint ssbo_GPU_id;
 	void computeShader()
 	{
+		if (prog_compute_shader->gpuId <= 0) {
+			cout << "invalid Compute shader, abort" << endl;
+			exit(1);
+		}
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, prog_compute_shader->gpuId);
 		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(ssbo_data), &ssbo_CPUMEM, GL_DYNAMIC_COPY);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, prog_compute_shader->gpuId);
@@ -290,6 +295,7 @@ public:
     
     GLuint VAOX, VAOY, VAOZ, VBOX, VBOY, VBOZ;
     GLuint VAODebug, VBODebug;
+	GLuint VAOGauge, VBOGauge;
     GLuint skyboxVAO, skyboxVBO;
     int grid_vertices_size;
 	void initGeom()
@@ -302,31 +308,29 @@ public:
         float innerStep = step / (float)numPoints;
         // the grid is rendered as LINE_STRIP, therefore we always set pairs of points (a->b, b->c, etc..)
         for (float z = -gridSize; z <= 0; z += step)
+        {
+        for (float x = -gridSize; x <= 0; x += step)
             {
-            for (float x = -gridSize; x <= 0; x += step)
+            for (float y = -gridSize / 2.; y <= gridSize / 2.; y += step)
                 {
-                for (float y = -gridSize / 2.; y <= gridSize / 2.; y += step)
+                for (int xi = 0; xi < numPoints; xi++)
                     {
-                    for (int xi = 0; xi < numPoints; xi++)
-                        {
-                        grid_x.push_back(vec3(x - (xi * innerStep), y, z));
-                        grid_x.push_back(vec3(x - ((xi + 1) * innerStep), y, z));
-                        }
-                    for (int yi = 0; yi < numPoints; yi++)
-                        {
-                        grid_y.push_back(vec3(x, y + (yi * innerStep), z));
-                        grid_y.push_back(vec3(x, y + ((yi + 1) * innerStep), z));
-                        }
-                    for (int zi = 0; zi < numPoints; zi++)
-                        {
-                        grid_z.push_back(vec3(x, y, z - (zi * innerStep)));
-                        grid_z.push_back(vec3(x, y, z - ((zi + 1) * innerStep)));
-                        }
+                    grid_x.push_back(vec3(x - (xi * innerStep), y, z));
+                    grid_x.push_back(vec3(x - ((xi + 1) * innerStep), y, z));
+                    }
+                for (int yi = 0; yi < numPoints; yi++)
+                    {
+                    grid_y.push_back(vec3(x, y + (yi * innerStep), z));
+                    grid_y.push_back(vec3(x, y + ((yi + 1) * innerStep), z));
+                    }
+                for (int zi = 0; zi < numPoints; zi++)
+                    {
+                    grid_z.push_back(vec3(x, y, z - (zi * innerStep)));
+                    grid_z.push_back(vec3(x, y, z - ((zi + 1) * innerStep)));
                     }
                 }
             }
-        
-        // TODO: add "closing" line at the end.
+        }
         
         // all vertices have to be the same length anyway.
         grid_vertices_size = grid_x.size();
@@ -471,7 +475,6 @@ public:
         glUseProgram(prog_binary_system->pid);
         glUniform1i(Tex3Location, 0);
         
-        
         //texture moon
         str = resourceDir + "/moon.jpg";
         strcpy(filepath, str.c_str());
@@ -530,6 +533,47 @@ public:
 		glUniform1i(Tex5Location, 0);
         
         glBindVertexArray(0);
+
+		// ---------- Textures Gauge
+		//texture gauge
+		str = resourceDir + "/gauge.png";
+		strcpy(filepath, str.c_str());
+		data = stbi_load(filepath, &width, &height, &channels, 4);
+		glGenTextures(1, &Texture_gauge);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, Texture_gauge);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+		//texture 2
+		str = resourceDir + "/indicator.jpg";
+		strcpy(filepath, str.c_str());
+		data = stbi_load(filepath, &width, &height, &channels, 4);
+		glGenTextures(1, &Texture_indicator);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, Texture_indicator);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		glUseProgram(prog_gauge->pid);
+		Tex1Location = glGetUniformLocation(prog_gauge->pid, "tex_gauge");
+		glUniform1i(Tex1Location, 0);
+		Tex1Location = glGetUniformLocation(prog_gauge->pid, "tex_indicator");
+		glUniform1i(Tex1Location, 1);
+
+		glUseProgram(0);
+		glBindVertexArray(0);
+		// ------ end Textures gauge
+		// ------ texture display gauge?
+
+		// ------ end texture display gauge
         
         glGenVertexArrays(1, &VAODebug);
         glBindVertexArray(VAODebug);
@@ -714,15 +758,15 @@ public:
             vector<string>({"P", "V", "M","lightpos" ,"colordot"  }),
             vector<string>({"vertPos","vertNor", "vertTex"}));
 
-		//// INIT compute shader
-		//initProgram(prog_compute_shader,
-		//	vector<string>({"/shader_compute.glsl"}),
-		//	vector<string>({"Ry", "HandPos", "bi_star_facts"}));
+		// INIT compute shader
+		initProgram(prog_compute_shader,
+			vector<string>({"/shader_compute.glsl"}),
+			vector<string>({"Ry", "HandPos", "bi_star_facts"}));
 
 		// INIT gauge
 		initProgram(prog_gauge,
-			vector<string>({ "/shader_vertex_gauge.glsl"/*, "/shader_fragment_gauge.glsl"*/, "/shader_geometry_gauge.glsl" }),
-			vector<string>({ "P", "V", "M", "angle" }));
+			vector<string>({ "/shader_vertex_gauge.glsl", "/shader_fragment_gauge.glsl", "/shader_geometry_gauge.glsl" }),
+			vector<string>({ "P", "V", "M", "RotM", "HandPos", "gVP", "CamPos"}));
 
 		// INIT post processing program
         initProgram(prog_post_proc,

@@ -45,16 +45,17 @@
     <None Include="..\resources\shaders\ppfrag.glsl" />
     <None Include="..\resources\shaders\ppvert.glsl" />
     <None Include="..\resources\shaders\shader_fragment_debug.glsl" />
+    <None Include="..\resources\shaders\shader_fragment_gauge.glsl" />
     <None Include="..\resources\shaders\shader_fragment_grid.glsl" />
-    <None Include="..\resources\shaders\shader_fragment_skybox.glsl" />
     <None Include="..\resources\shaders\shader_fragment_sphere.glsl" />
+    <None Include="..\resources\shaders\shader_geometry_gauge.glsl" />
     <None Include="..\resources\shaders\shader_geometry_x.glsl" />
     <None Include="..\resources\shaders\shader_geometry_y.glsl" />
     <None Include="..\resources\shaders\shader_geometry_z.glsl" />
     <None Include="..\resources\shaders\shader_vertex_debug.glsl" />
     <None Include="..\resources\shaders\shader_vertex_earth.glsl" />
+    <None Include="..\resources\shaders\shader_vertex_gauge.glsl" />
     <None Include="..\resources\shaders\shader_vertex_grid.glsl" />
-    <None Include="..\resources\shaders\shader_vertex_skybox.glsl" />
     <None Include="..\resources\shaders\shader_vertex_sphere.glsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

@@ -54,9 +54,6 @@
     <None Include="..\resources\shaders\shader_vertex_grid.glsl">
       <Filter>shader</Filter>
     </None>
-    <None Include="..\resources\shaders\shader_vertex_skybox.glsl">
-      <Filter>shader</Filter>
-    </None>
     <None Include="..\resources\shaders\shader_vertex_sphere.glsl">
       <Filter>shader</Filter>
     </None>
@@ -66,9 +63,6 @@
     <None Include="..\resources\shaders\shader_fragment_grid.glsl">
       <Filter>shader</Filter>
     </None>
-    <None Include="..\resources\shaders\shader_fragment_skybox.glsl">
-      <Filter>shader</Filter>
-    </None>
     <None Include="..\resources\shaders\ppfrag.glsl">
       <Filter>shader</Filter>
     </None>
@@ -76,5 +70,8 @@
       <Filter>shader</Filter>
     </None>
     <None Include="..\resources\shaders\shader_compute.glsl" />
+    <None Include="..\resources\shaders\shader_fragment_gauge.glsl" />
+    <None Include="..\resources\shaders\shader_geometry_gauge.glsl" />
+    <None Include="..\resources\shaders\shader_vertex_gauge.glsl" />
   </ItemGroup>
 </Project>

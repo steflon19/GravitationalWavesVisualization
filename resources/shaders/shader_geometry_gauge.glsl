@@ -1,49 +1,39 @@
 #version 330 core
-layout (points) in;
-layout (triangle_strip, max_vertices = 4) out;
 
-in vec3 vertex_pos[];
-in vec3 scolor[];
-in vec3 camvertex_pos[];
-out vec3 camvertex_pos_g; 
-out vec2 texcoord;
-out vec3 fcolor;
+layout(points) in;
+layout(triangle_strip, max_vertices = 4) out;
+
+uniform mat4 gVP;
+uniform vec3 CamPos;
+
+out vec2 TexCoord;
 
 void main() {
-    vec2 vert_pos_one = vertex_pos[0].xy;
-    vec2 vert_pos_two = vertex_pos[1].xy;
-    
-    vec3 camvert_pos_one = camvertex_pos[0];
-    vec3 camvert_pos_two = camvertex_pos[1];
-    float width = 0.002f;
-    
-    // bottom left
-    gl_Position = gl_in[0].gl_Position + vec4(0.0, -width, 0.0, 0.0);
-    camvertex_pos_g = camvert_pos_one;
-    texcoord = vec2(0,1);
-    fcolor = scolor[0];
+    vec3 Pos = gl_in[0].gl_Position.xyz;
+    vec3 toCamera = normalize(CamPos - Pos);
+    vec3 up = vec3(0.0, 1.0, 0.0);
+    vec3 right = cross(toCamera, up);
+
+    Pos -= (right * 0.5);
+    gl_Position = gVP * vec4(Pos, 1.0);
+    TexCoord = vec2(0.0, 0.0);
     EmitVertex();
 
-    // bottom right
-    gl_Position = gl_in[1].gl_Position + vec4( 0.0, -width, 0.0, 0.0);
-    camvertex_pos_g = camvert_pos_two;
-    texcoord = vec2(1,1);
-    fcolor = scolor[0];
+    Pos.y += 1.0;
+    gl_Position = gVP * vec4(Pos, 1.0);
+    TexCoord = vec2(0.0, 1.0);
     EmitVertex();
-//    
-//    // top left
-//    gl_Position = gl_in[0].gl_Position + vec4( 0.0, width, 0.0, 0.0);
-//    camvertex_pos_g = camvert_pos_one;
-//    texcoord = vec2(0,0);
-//    fcolor = scolor[0];
-//    EmitVertex();
-//    
-//    // top right
-//    gl_Position = gl_in[1].gl_Position + vec4( 0.0, width, 0.0, 0.0);
-//    camvertex_pos_g = camvert_pos_two;
-//    texcoord = vec2(1,0);
-//    fcolor = scolor[0];
-//    EmitVertex();
-    
-    EndPrimitive();
+
+	Pos.y -= 1.0;
+    Pos += right;
+    gl_Position = gVP * vec4(Pos, 1.0);
+    TexCoord = vec2(1.0, 0.0);
+    EmitVertex();
+
+	Pos.y += 1.0;
+    gl_Position = gVP * vec4(Pos, 1.0);
+    TexCoord = vec2(1.0, 1.0);
+    EmitVertex();
+
+	EndPrimitive();
 }
