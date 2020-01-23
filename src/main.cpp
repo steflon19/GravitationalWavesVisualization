@@ -572,7 +572,22 @@ public:
 		glBindVertexArray(0);
 		// ------ end Textures gauge
 		// ------ texture display gauge?
-
+		glGenVertexArrays(1, &VAOGauge);
+		glBindVertexArray(VAOGauge);
+		glGenBuffers(1, &VBOGauge);
+		glBindBuffer(GL_ARRAY_BUFFER, VBOGauge);
+		GLfloat* rectangle_vertices_gauge = new GLfloat[3];
+		int verccount_gauge = 0;
+		rectangle_vertices_gauge[verccount_gauge++] = 0.0, rectangle_vertices_gauge[verccount_gauge++] = 0.0, rectangle_vertices_gauge[verccount_gauge++] = 0.0;
+		/*rectangle_vertices[verccount++] = 1.0, rectangle_vertices[verccount++] = -1.0, rectangle_vertices[verccount++] = 0.0;
+		rectangle_vertices[verccount++] = -1.0, rectangle_vertices[verccount++] = 1.0, rectangle_vertices[verccount++] = 0.0;
+		rectangle_vertices[verccount++] = 1.0, rectangle_vertices[verccount++] = -1.0, rectangle_vertices[verccount++] = 0.0;
+		rectangle_vertices[verccount++] = 1.0, rectangle_vertices[verccount++] = 1.0, rectangle_vertices[verccount++] = 0.0;
+		rectangle_vertices[verccount++] = -1.0, rectangle_vertices[verccount++] = 1.0, rectangle_vertices[verccount++] = 0.0;*/
+		glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(float), rectangle_vertices_gauge, GL_STATIC_DRAW);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+		glBindVertexArray(0);
 		// ------ end texture display gauge
         
         glGenVertexArrays(1, &VAODebug);
@@ -766,7 +781,7 @@ public:
 		// INIT gauge
 		initProgram(prog_gauge,
 			vector<string>({ "/shader_vertex_gauge.glsl", "/shader_fragment_gauge.glsl", "/shader_geometry_gauge.glsl" }),
-			vector<string>({ "P", "V", "M", "RotM", "HandPos", "gVP", "CamPos"}));
+			vector<string>({ "P", "V", "M", "HandPos", "gVP", "CamPos"}));
 
 		// INIT post processing program
         initProgram(prog_post_proc,
@@ -1085,7 +1100,7 @@ public:
 		//cout << "POS "; printVec(vec3(M[3])); cout << " trans: "; printVec(transVec); cout << " and diff "; printVec(vec3(M[3]) - transVec);
 		glUniformMatrix4fv(prog_hand_right->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 
-		shape_hand_right->draw(prog_hand_right, false);
+		// shape_hand_right->draw(prog_hand_right, false);
 		prog_hand_right->unbind();
 
 		//// proper amplitude calculation with compute shader
@@ -1106,7 +1121,6 @@ public:
 		prog_compute_shader->unbind();
 		////
 
-
 		// Drawing text on hand position (previous M). extract to function and add for both hands?
 		// round(amplitude * 10000.f) / 10000.f
 		string amplString = RoundToString(amplitude, 4);
@@ -1126,6 +1140,31 @@ public:
 		font->draw(screenpos.x, screenpos.y - 0.05f, 0.3f, (string)"Max: " + maxAmplString, 1.f, 1.f, 1.f);
 		font->draw(screenpos.x, screenpos.y - 0.15f, 0.3f, (string)"Min: " + minAmplString, 1.f, 1.f, 1.f);
 		font->draw();
+
+		//////// Gauge Rendering
+		prog_gauge->bind();
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, Texture_gauge);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, Texture_indicator);
+		//send the matrices to the shaders
+		glUniformMatrix4fv(prog_gauge->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniformMatrix4fv(prog_gauge->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+		// no M needed here? 
+		M = mat4(1);
+		glUniformMatrix4fv(prog_gauge->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		// TODO: probably get proper Rotation matrix here
+		glUniformMatrix4fv(prog_gauge->getUniform("RotM"), 1, GL_FALSE, &Ry[0][0]);
+		glUniformMatrix4fv(prog_gauge->getUniform("gVP"), 1, GL_FALSE, &(V*P)[0][0]);
+		vec3 camPosVec = vec3(camPos[3]);
+		glUniform3fv(prog_gauge->getUniform("CamPos"), 1, &camPosVec.x);
+		glUniform3fv(prog_gauge->getUniform("HandPos"), 1, &handPosRightVec.x);
+		glBindVertexArray(VAOGauge);
+		glDrawArrays(GL_POINTS, 0, 1);
+
+		prog_gauge->unbind();
+		//////// End Gauge Rendering
 
 		if (false) {
 			prog_debug->bind();

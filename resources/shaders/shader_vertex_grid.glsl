@@ -76,6 +76,9 @@ void main()
     attractedPosition = getAttractedPositionMoon(attractedPosition);
 	// attractedPosition = getAttractedPositionBinary(attractedPosition, BPosOne);
 	// attractedPosition = getAttractedPositionBinary(attractedPosition, BPosTwo);
+	vec3 removeWarning = BPosOne + BPosTwo;
+	attractedPosition += vec4(removeWarning, 1);
+	attractedPosition -= vec4(removeWarning, 1);
     vec4 tpos =  Ry * M * vec4(vertPos, 1.0);
     vertex_pos = (M * vec4(vertPos, 1.0)).xyz; // Rotate this by 90° ??
     camvertex_pos = vec3(V * attractedPosition);
