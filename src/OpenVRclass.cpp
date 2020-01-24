@@ -216,6 +216,15 @@ void OpenVRApplication::HandleVRInput(const vr::VREvent_t& event) {
 	switch (event.eventType)
 	{
 		// TODO: maybe some other stuff here
+	case vr::k_EButton_SteamVR_Touchpad:
+		cout << "VR event SteamVR Touchpad " << event.eventType << endl;
+		break;
+	case vr::k_EButton_DPad_Down:
+	case vr::k_EButton_DPad_Right:
+	case vr::k_EButton_DPad_Left:
+	case vr::k_EButton_DPad_Up:
+		cout << "VR event DPAD " << event.eventType << endl;
+		break;
 	default:
 		std::cout << "VR event " << event.eventType << std::endl;
 		HandleVRButtonEvent(event);
@@ -224,11 +233,17 @@ void OpenVRApplication::HandleVRInput(const vr::VREvent_t& event) {
 
 void OpenVRApplication::HandleVRButtonEvent(vr::VREvent_t event) {
 	char* buf = new char[100];
-	if (event.eventType >= 200 && event.eventType <= 203)
+	if (event.eventType >= 200 && event.eventType <= 203) {
 		if (event.data.controller.button == vr::k_EButton_A && event.eventType == vr::VREvent_ButtonPress)
 			cout << "handling A/X button press" << endl; // TODO: display stuff here probably
-	else
-		sprintf(buf, "\nEVENT--(OpenVR) Event: %d", event.eventType);
+		else if (event.data.controller.button == vr::k_EButton_DPad_Up)
+			cout << "DPAD UP!!!! " << event.eventType << endl;
+		else if (event.data.controller.button == vr::k_eControllerAxis_TrackPad)
+			cout << "Controller axis?!" << event.eventType << endl;
+	}
+	else {
+		sprintf(buf, "\nEVENT--(OpenVR) Event: %d - %i", event.eventType, event.data.controller.button);
+	}
 }
 
 vr::HmdVector3_t OpenVRApplication::GetPosition(vr::HmdMatrix34_t matrix)
@@ -351,7 +366,7 @@ OpenVRApplication::OpenVRApplication()
 		std::cout << "Error : OpenVR Runtime not detected on the system" << std::endl;
 	}
 
-	//OpenVRApplication::initVR();
+	OpenVRApplication::initVR();
 
 	if (!hmd)
 	{

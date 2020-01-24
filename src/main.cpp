@@ -781,7 +781,7 @@ public:
 		// INIT gauge
 		initProgram(prog_gauge,
 			vector<string>({ "/shader_vertex_gauge.glsl", "/shader_fragment_gauge.glsl", "/shader_geometry_gauge.glsl" }),
-			vector<string>({ "P", "V", "M", "HandPos", "gVP", "CamPos"}));
+			vector<string>({ "P", "V", "M", "RotM", "HandPos", "gVP", "CamPos"}));
 
 		// INIT post processing program
         initProgram(prog_post_proc,
@@ -1100,7 +1100,7 @@ public:
 		//cout << "POS "; printVec(vec3(M[3])); cout << " trans: "; printVec(transVec); cout << " and diff "; printVec(vec3(M[3]) - transVec);
 		glUniformMatrix4fv(prog_hand_right->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 
-		// shape_hand_right->draw(prog_hand_right, false);
+		shape_hand_right->draw(prog_hand_right, false);
 		prog_hand_right->unbind();
 
 		//// proper amplitude calculation with compute shader
@@ -1115,7 +1115,7 @@ public:
 		//ssbo_CPUMEM.io[0] = vec4(-cam_.pos, 0);
 		computeShader(); // prog_compute_shader->computeComputeShader();
 		amplitude = ssbo_CPUMEM.io[0].w;
-		cout << "UL.r " << ssbo_CPUMEM.io[0].y << " LR.r " << ssbo_CPUMEM.io[0].z << endl;
+		// cout << "UL.r " << ssbo_CPUMEM.io[0].y << " LR.r " << ssbo_CPUMEM.io[0].z << endl;
 		//amplitude = ssbo_CPUMEM.io[0].x;
 		//printVec(ssbo_CPUMEM.io[0], "cpumem io vector: ");
 		prog_compute_shader->unbind();
