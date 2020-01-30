@@ -132,7 +132,7 @@ public:
     // Data necessary to give our box to OpenGL
     GLuint VertexBufferID, VertexColorIDBox, IndexBufferIDBox;
 
-	vec2 bi_star_facts = vec2(1, 0.1f);
+	vec2 bi_star_facts = vec2(1, 1);
 	float bi_star_angle_off = 0.2;
     //texture data
     GLuint Texture_grid, Texture_earth, Texture_sun, Texture_spiral, Texture_moon, Texture_marble;
@@ -495,17 +495,18 @@ public:
         glBindVertexArray(0);
 
 //        texture spiral
-		str = resourceDir + "/spiral_col.png";//"/double_spiral.png";
+		str = resourceDir + "/double_spiral.png";//"/double_spiral.png";
 		strcpy(filepath, str.c_str());
 		data = stbi_load(filepath, &width, &height, &channels, 4);
 		glGenTextures(1, &Texture_spiral);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, Texture_spiral);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); // GL_CLAMP_TO_EDGE ?
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); // GL_CLAMP_TO_EDGE
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+		glBindImageTexture(0, Texture_spiral, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8);	//enable texture in shader
 		glGenerateMipmap(GL_TEXTURE_2D);
 		//GLuint Tex4Location = glGetUniformLocation(prog_debug->pid, "tex");
 		//glUseProgram(prog_debug->pid);
@@ -1115,7 +1116,7 @@ public:
 		//ssbo_CPUMEM.io[0] = vec4(-cam_.pos, 0);
 		computeShader(); // prog_compute_shader->computeComputeShader();
 		amplitude = ssbo_CPUMEM.io[0].w;
-		// cout << "UL.r " << ssbo_CPUMEM.io[0].y << " LR.r " << ssbo_CPUMEM.io[0].z << endl;
+		cout << "UL.r " << ssbo_CPUMEM.io[0].y << " LR.r " << ssbo_CPUMEM.io[0].z << endl;
 		//amplitude = ssbo_CPUMEM.io[0].x;
 		//printVec(ssbo_CPUMEM.io[0], "cpumem io vector: ");
 		prog_compute_shader->unbind();
@@ -1137,8 +1138,8 @@ public:
 		screenpos.x /= screenpos.w;
 		screenpos.y /= screenpos.w;
 		font->draw(screenpos.x, screenpos.y + 0.05f, 0.3f, (string)"Current: " + amplString, 1.f, 1.f, 1.f);
-		font->draw(screenpos.x, screenpos.y - 0.05f, 0.3f, (string)"Max: " + maxAmplString, 1.f, 1.f, 1.f);
-		font->draw(screenpos.x, screenpos.y - 0.15f, 0.3f, (string)"Min: " + minAmplString, 1.f, 1.f, 1.f);
+		// font->draw(screenpos.x, screenpos.y - 0.05f, 0.3f, (string)"Max: " + maxAmplString, 1.f, 1.f, 1.f);
+		// font->draw(screenpos.x, screenpos.y - 0.15f, 0.3f, (string)"Min: " + minAmplString, 1.f, 1.f, 1.f);
 		font->draw();
 
 		//////// Gauge Rendering

@@ -11,7 +11,8 @@ out vec2 TexCoord;
 void main() {
     vec3 Pos = gl_in[0].gl_Position.xyz;
     vec3 toCamera = normalize(CamPos - Pos);
-    vec3 up = vec3(0.0, 1.0, 0.0);
+	float size = 0.4f;
+    vec3 up = vec3(0.0, size, 0.0);
     vec3 right = cross(toCamera, up);
 
     Pos -= (right * 0.5);
@@ -19,18 +20,18 @@ void main() {
     TexCoord = vec2(1.0, 1.0);
     EmitVertex();
 
-    Pos.y += 1.0;
+    Pos.y += size;
     gl_Position = gVP * vec4(Pos, 1.0);
     TexCoord = vec2(1.0, 0.0);
     EmitVertex();
 
-	Pos.y -= 1.0;
+	Pos.y -= size;
     Pos += right;
     gl_Position = gVP * vec4(Pos, 1.0);
     TexCoord = vec2(0.0, 1.0);
     EmitVertex();
 
-	Pos.y += 1.0;
+	Pos.y += size;
     gl_Position = gVP * vec4(Pos, 1.0);
     TexCoord = vec2(0.0, 0.0);
     EmitVertex();
