@@ -782,7 +782,7 @@ public:
 		// INIT gauge
 		initProgram(prog_gauge,
 			vector<string>({ "/shader_vertex_gauge.glsl", "/shader_fragment_gauge.glsl", "/shader_geometry_gauge.glsl" }),
-			vector<string>({ "V", "RotM", "HandPos", "gVP", "CamPos"}));
+			vector<string>({ "V", "RotM", "HandPos", "gVP", "CamPos", "amplitude"}));
 
 		// INIT post processing program
         initProgram(prog_post_proc,
@@ -1101,7 +1101,7 @@ public:
 		//cout << "POS "; printVec(vec3(M[3])); cout << " trans: "; printVec(transVec); cout << " and diff "; printVec(vec3(M[3]) - transVec);
 		glUniformMatrix4fv(prog_hand_right->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 
-		shape_hand_right->draw(prog_hand_right, false);
+		// shape_hand_right->draw(prog_hand_right, false);
 		prog_hand_right->unbind();
 
 		//// proper amplitude calculation with compute shader
@@ -1132,7 +1132,7 @@ public:
 		string maxAmplString = RoundToString(maxAmpl, 3);*/
 		// cout << amplString << endl;// " ----- ";
 
-		vec3 handTextOffset = vec3(-0.015f, -0.01f, 0.01f);
+		vec3 handTextOffset = vec3(0.f, -0.02f, 0.01f);
 		vec4 screenpos = P * V * vec4(handPosRightVec + handTextOffset, 1);
 		screenpos.x /= screenpos.w;
 		screenpos.y /= screenpos.w;
@@ -1154,6 +1154,7 @@ public:
 		vec3 camPosVec = vec3(camPos[3]);
 		glUniform3fv(prog_gauge->getUniform("CamPos"), 1, &camPosVec.x);
 		glUniform3fv(prog_gauge->getUniform("HandPos"), 1, &handPosRightVec.x);
+		glUniform1f(prog_gauge->getUniform("amplitude"), amplitude);
 		glBindVertexArray(VAOGauge);
 		glDrawArrays(GL_POINTS, 0, 1);
 

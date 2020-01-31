@@ -16,6 +16,7 @@ void main() {
     vec3 right = cross(toCamera, up);
 
     Pos += (right * 0.5);
+    Pos.y -= size/4;
     gl_Position = gVP * vec4(Pos, 1.0);
     TexCoord = vec2(1.0, 1.0);
     EmitVertex();

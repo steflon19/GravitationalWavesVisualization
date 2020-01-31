@@ -11,25 +11,9 @@ out vec3 frag_pos;
 out vec3 vertex_normal;
 out vec2 vertex_tex;
 
-// TODO: move rotation to CPU
-mat4 rotationX( float angle ) {
-    return mat4(    1.0,              0,              0,        0,
-                      0,     cos(angle),    -sin(angle),        0,
-                      0,     sin(angle),     cos(angle),        0,
-                      0,              0,              0,        1.);
-}
-mat4 rotationY( in float angle ) {
-    return mat4(     cos(angle),          0,        sin(angle),    0,
-                              0,        1.0,                 0,    0,
-                    -sin(angle),          0,        cos(angle),    0,
-                              0,          0,                 0,    1.);
-}
-
 void main()
 {
     vec4 newPos = vec4(vertPos,1.0);
-    
-    newPos = newPos * rotationX(3.14159265359/2.) * rotationY(3.14159265359);
     
 	vertex_normal = vec4(M * vec4(vertNor,0.0)).xyz;
     frag_pos = vec4(M * vec4(newPos)).xyz;

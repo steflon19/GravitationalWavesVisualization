@@ -14,28 +14,12 @@ out vec2 vertex_tex;
 uniform vec2 bi_star_facts;
 uniform sampler2D tex_spiral;
 
-mat4 rotationX( float angle ) {
-    return mat4(    1.0,              0,              0,        0,
-                      0,     cos(angle),    -sin(angle),        0,
-                      0,     sin(angle),     cos(angle),        0,
-                      0,              0,              0,        1.);
-}
-mat4 rotationY( in float angle ) {
-    return mat4(     cos(angle),          0,        sin(angle),    0,
-                              0,        1.0,                 0,    0,
-                    -sin(angle),          0,        cos(angle),    0,
-                              0,          0,                 0,    1.);
-}
-
 void main()
 {
     vec4 newPos = vec4(vertPos,1.0);
     
-
-    
 	vertex_normal = vec4(M * vec4(vertNor,0.0)).xyz;
     frag_pos = vec4(M * newPos).xyz;
-    
     
     //vec4 tpos =  M * vec4(newPos);// vec4(newPos, 1.0);
     vec4 tpos =  Ry * M * vec4(newPos);

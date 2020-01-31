@@ -217,16 +217,16 @@ void OpenVRApplication::HandleVRInput(const vr::VREvent_t& event) {
 	{
 		// TODO: maybe some other stuff here
 	case vr::k_EButton_SteamVR_Touchpad:
-		cout << "VR event SteamVR Touchpad " << event.eventType << endl;
+		//cout << "VR event SteamVR Touchpad " << event.eventType << endl;
 		break;
 	case vr::k_EButton_DPad_Down:
 	case vr::k_EButton_DPad_Right:
 	case vr::k_EButton_DPad_Left:
 	case vr::k_EButton_DPad_Up:
-		cout << "VR event DPAD " << event.eventType << endl;
+		//cout << "VR event DPAD " << event.eventType << endl;
 		break;
 	default:
-		std::cout << "VR event " << event.eventType << std::endl;
+		//std::cout << "VR event " << event.eventType << std::endl;
 		HandleVRButtonEvent(event);
 	}
 }
