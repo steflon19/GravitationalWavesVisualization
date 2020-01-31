@@ -1259,11 +1259,6 @@ int main(int argc, char **argv)
     while(! glfwWindowShouldClose(windowManager->getHandle()))
     {
         // Render scene.
-		// 1 = left and 2 = right
-		vr::HmdVector3_t controllerPos = vrapp->GetControllerPos(1);
-		application->ControllerPosLeft = vec3(controllerPos.v[0], controllerPos.v[1], controllerPos.v[2]);
-		controllerPos = vrapp->GetControllerPos(2);
-		application->controller_pos_right_ = vec3(controllerPos.v[0], controllerPos.v[1], controllerPos.v[2]);
 
 		vrapp->render_to_VR(my_render);
 		vrapp->render_to_screen(1);//0..left eye, 1..right eye

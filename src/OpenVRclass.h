@@ -67,6 +67,7 @@
 #pragma oncex
 #include <openvr.h>
 #include <string>
+#include <vector>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glad/glad.h>
@@ -86,28 +87,33 @@ private:
 	vr::TrackedDevicePose_t pose;	//matrix from the headset tracking
 	vr::VRActionSetHandle_t m_actionsetDemo = vr::k_ulInvalidActionSetHandle;
 	vr::VRActionSetHandle_t m_actionTriggerHaptic = vr::k_ulInvalidActionHandle;
-	struct _ControllerData
+	vr::VRActionHandle_t m_actionAnalongInput = vr::k_ulInvalidActionHandle;
+
+	// Utility
+	mat4 ConvertSteamVRMatrixToMat4(const vr::HmdMatrix34_t &matPose);
+
+	//// ----- Vr controller stuff
+	struct ControllerInfo_t
 	{
-		//Fields to be initialzed by iterateAssignIds() and setHands()
-		int deviceId = -1;   // Device ID according to the SteamVR system
-		int hand = -1;       // 0=invalid 1=left 2=right
-		int idtrigger = -1;  // Trigger axis id
-		int idpad = -1;      // Touchpad axis id
-
-		//Analog button data to be set in ContollerCoods()
-		float padX;
-		float padY;
-		float trigVal;
-
-		//Position set in ControllerCoords()
-		vr::HmdVector3_t pos;
-
-		bool isValid;
+		vr::VRInputValueHandle_t m_source = vr::k_ulInvalidInputValueHandle;
+		vr::VRActionHandle_t m_actionPose = vr::k_ulInvalidActionHandle;
+		vr::VRActionHandle_t m_actionHaptic = vr::k_ulInvalidActionHandle;
+		mat4 m_rmat4Pose;
+		std::string m_sRenderModelName;
+		bool m_bShowController;
 	};
-	typedef struct _ControllerData ControllerData;
-	ControllerData controllers[2];
 
-	int controller_index = -1;
+	enum EHand
+	{
+		Left = 0,
+		Right = 1,
+	};
+	ControllerInfo_t m_rHand[2];
+	vec2 m_vAnalogValue;
+
+	bool GetDigitalActionState(vr::VRActionHandle_t action, vr::VRInputValueHandle_t* pDevicePath = nullptr);
+	bool GetDigitalActionRisingEdge(vr::VRActionHandle_t action, vr::VRInputValueHandle_t* pDevicePath = nullptr);
+	//// -----
 
 	void render_to_FBO(int selectFBO, void(*renderfunction)(int, int, glm::mat4, int, bool));
 	unsigned int FBO[4], FBOtexture[4], FBOdepth[2];
@@ -137,14 +143,7 @@ public:
 	}
 	int get_render_width() { return rtWidth; }
 	int get_render_height() { return rtHeight; }
-	void PrintTrackedDevices();
-	void HandleVRButtonEvent(vr::VREvent_t event);
-	void HandleVRInput(const vr::VREvent_t& event);
 	void PollEvent();
-	void GetCoords();
-	vr::HmdVector3_t GetControllerPos(int index);
-	vr::HmdVector3_t GetPosition(vr::HmdMatrix34_t matrix);
-	void SetupControllers();
 	OpenVRApplication();
 	bool init_buffers(string resourceDirectory,int msaa_fact);
 	virtual OpenVRApplication::~OpenVRApplication()
@@ -159,7 +158,5 @@ public:
 	unsigned int get_FBO_texture(int i) { if (i < 0 || i>3)return 0; return FBOtexture[i]; }
 	void render_to_screen(int texture_num);
 
-	bool GetDigitalActionState(vr::VRActionHandle_t action, vr::VRInputValueHandle_t* pDevicePath = nullptr);
-	bool GetDigitalActionRisingEdge(vr::VRActionHandle_t action, vr::VRInputValueHandle_t* pDevicePath = nullptr);
 };
 

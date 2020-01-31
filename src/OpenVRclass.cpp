@@ -135,175 +135,27 @@ std::string GetTrackedDeviceString(vr::IVRSystem *pHmd, vr::TrackedDeviceIndex_t
 }
 //*******************************************************************************************************************************************************
 
-void OpenVRApplication::SetupControllers() {
-
-	int numControllersInitialized = 0;
-	for (int td = vr::k_unTrackedDeviceIndex_Hmd; td < vr::k_unMaxTrackedDeviceCount; td++) {
-		if (hmd != NULL && hmd->IsTrackedDeviceConnected(td)) {
-			vr::ETrackedDeviceClass td_class = hmd->GetTrackedDeviceClass(td);
-			if (td_class == vr::ETrackedDeviceClass::TrackedDeviceClass_Controller) {
-
-				ControllerData* pC = &(controllers[numControllersInitialized]);
-
-				int sHand = -1;
-
-				vr::ETrackedControllerRole role = hmd->GetControllerRoleForTrackedDeviceIndex(td);
-				if (role == vr::TrackedControllerRole_Invalid) //Invalid hand is actually very common, always need to test for invalid hand (lighthouses have lost tracking)
-					sHand = 0;
-				else if (role == vr::TrackedControllerRole_LeftHand)
-					sHand = 1;
-				else if (role == vr::TrackedControllerRole_RightHand)
-					sHand = 2;
-				pC->hand = sHand;
-				pC->deviceId = td;
-				numControllersInitialized++;
-			}
-		}
-	}
+// Utility functions
+//-----------------------------------------------------------------------------
+// Purpose: Converts a SteamVR matrix to our local matrix class
+//-----------------------------------------------------------------------------
+mat4 OpenVRApplication::ConvertSteamVRMatrixToMat4(const vr::HmdMatrix34_t &matPose)
+{
+	mat4 matrixObj(
+		matPose.m[0][0], matPose.m[1][0], matPose.m[2][0], 0.0,
+		matPose.m[0][1], matPose.m[1][1], matPose.m[2][1], 0.0,
+		matPose.m[0][2], matPose.m[1][2], matPose.m[2][2], 0.0,
+		matPose.m[0][3], matPose.m[1][3], matPose.m[2][3], 1.0f
+	);
+	return matrixObj;
 }
-
-void OpenVRApplication::PrintTrackedDevices() {
-	for (int td = vr::k_unTrackedDeviceIndex_Hmd; td < vr::k_unMaxTrackedDeviceCount; td++) {
-		if (hmd != NULL && hmd->IsTrackedDeviceConnected(td)) {
-			vr::ETrackedDeviceClass td_class = hmd->GetTrackedDeviceClass(td);
-
-			char* td_name = new char();
-			hmd->GetStringTrackedDeviceProperty(td, vr::Prop_TrackingSystemName_String, td_name, vr::k_unMaxPropertyStringSize);
-			// TODO: idk, maybe do something with this info..
-			string sss = td_class == vr::ETrackedDeviceClass::TrackedDeviceClass_Controller ? " IS CONTROLLER" : " ";
-			cout << "some info, type " << td_class << " name: " << td_name << sss << endl;
-		}
-	}
-}
-
+//
 void OpenVRApplication::PollEvent() {
-
 	// Define a VREvent
 	vr::VREvent_t event;
 	if (hmd->PollNextEvent(&event, sizeof(event)))
 	{
-		HandleVRInput(event);
 	}
-}
-
-void OpenVRApplication::HandleVRInput(const vr::VREvent_t& event) {
-	// Touch B is k_EButton_ApplicationMenu ...
-
-	// Process SteamVR action state
-	// UpdateActionState is called each frame to update the state of the actions themselves. The application
-	// controls which action sets are active with the provided array of VRActiveActionSet_t structs.
-	/*vr::VRActiveActionSet_t actionSet = { 0 };
-	actionSet.ulActionSet = m_actionsetDemo;
-	vr::VRInput()->UpdateActionState(&actionSet, sizeof(actionSet), 1);
-
-	vr::VRInputValueHandle_t ulHapticDevice;
-	cout << "did blah" << endl;
-	if (GetDigitalActionRisingEdge(m_actionTriggerHaptic, &ulHapticDevice))
-	{
-		cout << "did something??? id: " << controller_index << endl;
-		if (ulHapticDevice == m_rHand[Left].m_source)
-		{
-			vr::VRInput()->TriggerHapticVibrationAction(m_rHand[Left].m_actionHaptic, 0, 1, 4.f, 1.0f, vr::k_ulInvalidInputValueHandle);
-		}
-		if (ulHapticDevice == m_rHand[Right].m_source)
-		{
-			vr::VRInput()->TriggerHapticVibrationAction(m_rHand[Right].m_actionHaptic, 0, 1, 4.f, 1.0f, vr::k_ulInvalidInputValueHandle);
-		}
-
-		hmd->TriggerHapticPulse(controller_index, 0, 1.0f);
-	} */
-
-	switch (event.eventType)
-	{
-		// TODO: maybe some other stuff here
-	case vr::k_EButton_SteamVR_Touchpad:
-		//cout << "VR event SteamVR Touchpad " << event.eventType << endl;
-		break;
-	case vr::k_EButton_DPad_Down:
-	case vr::k_EButton_DPad_Right:
-	case vr::k_EButton_DPad_Left:
-	case vr::k_EButton_DPad_Up:
-		//cout << "VR event DPAD " << event.eventType << endl;
-		break;
-	default:
-		//std::cout << "VR event " << event.eventType << std::endl;
-		HandleVRButtonEvent(event);
-	}
-}
-
-void OpenVRApplication::HandleVRButtonEvent(vr::VREvent_t event) {
-	char* buf = new char[100];
-	if (event.eventType >= 200 && event.eventType <= 203) {
-		if (event.data.controller.button == vr::k_EButton_A && event.eventType == vr::VREvent_ButtonPress)
-			cout << "handling A/X button press" << endl; // TODO: display stuff here probably
-		else if (event.data.controller.button == vr::k_EButton_DPad_Up)
-			cout << "DPAD UP!!!! " << event.eventType << endl;
-		else if (event.data.controller.button == vr::k_eControllerAxis_TrackPad)
-			cout << "Controller axis?!" << event.eventType << endl;
-	}
-	else {
-		sprintf(buf, "\nEVENT--(OpenVR) Event: %d - %i", event.eventType, event.data.controller.button);
-	}
-}
-
-vr::HmdVector3_t OpenVRApplication::GetPosition(vr::HmdMatrix34_t matrix)
-{
-	vr::HmdVector3_t vector;
-
-	vector.v[0] = matrix.m[0][3];
-	vector.v[1] = matrix.m[1][3];
-	vector.v[2] = matrix.m[2][3];
-
-	return vector;
-}
-
-void OpenVRApplication::GetCoords() {
-	SetupControllers();
-
-	vr::TrackedDevicePose_t trackedDevicePose;
-	vr::VRControllerState_t controllerState;
-	vr::HmdQuaternion_t rot;
-
-
-	for (int i = 0; i < 2; i++)
-	{
-		ControllerData* pC = &(controllers[i]);
-
-		if (pC->deviceId < 0 ||
-			!hmd->IsTrackedDeviceConnected(pC->deviceId) ||
-			pC->hand </*=  Allow printing coordinates for invalid hand? Yes.*/ 0)
-			continue;
-
-		hmd->GetControllerStateWithPose(vr::TrackingUniverseStanding, pC->deviceId, &controllerState, sizeof(controllerState), &trackedDevicePose);
-		pC->pos = GetPosition(trackedDevicePose.mDeviceToAbsoluteTracking);
-		// std::cout << "device pos " << pC->pos.v[0] << " and " << pC->pos.v[1] << " and " << pC->pos.v[2] << std::endl;
-		//rot = GetRotation(trackedDevicePose.mDeviceToAbsoluteTracking);
-	}
-}
-
-vr::HmdVector3_t OpenVRApplication::GetControllerPos(int hand_type) {
-	GetCoords();
-	if (hand_type > 2 || hand_type < 1) cout << "Error, invalid controllers index " << hand_type << ". only 1 or 2 valid" << endl;
-	// maybe some error handling if only one or no hand is tracked?
-	ControllerData* pC = &(controllers[0]);
-	if(!hmd)
-		return vr::HmdVector3_t();
-
-	if (pC->hand == hand_type)
-		// TODO: improve duplicate code test.
-	{
-		return pC->pos;
-	}
-	else {
-		pC = &(controllers[1]);
-
-		if (pC->hand == hand_type) {
-			return pC->pos;
-		}
-		else
-			return vr::HmdVector3_t();
-	}
-
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -448,8 +300,15 @@ void OpenVRApplication::initVR()
 	std::clog << GetTrackedDeviceString(hmd, vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SerialNumber_String) << std::endl;
 
 	vr::VRInput()->GetActionHandle("/actions/demo/in/TriggerHaptic", &m_actionTriggerHaptic);
+	vr::VRInput()->GetActionHandle("/actions/demo/in/AnalogInput", &m_actionAnalongInput);
 	vr::VRInput()->GetActionSetHandle("/actions/demo", &m_actionsetDemo);
-	PrintTrackedDevices();
+	vr::VRInput()->GetActionHandle("/actions/demo/out/Haptic_Left", &m_rHand[Left].m_actionHaptic);
+	vr::VRInput()->GetInputSourceHandle("/user/hand/left", &m_rHand[Left].m_source);
+	vr::VRInput()->GetActionHandle("/actions/demo/in/Hand_Left", &m_rHand[Left].m_actionPose);
+
+	vr::VRInput()->GetActionHandle("/actions/demo/out/Haptic_Right", &m_rHand[Right].m_actionHaptic);
+	vr::VRInput()->GetInputSourceHandle("/user/hand/right", &m_rHand[Right].m_source);
+	vr::VRInput()->GetActionHandle("/actions/demo/in/Hand_Right", &m_rHand[Right].m_actionPose);
 
 }
 //*******************************************************************************************************************************************************
@@ -462,7 +321,6 @@ vr::TrackedDevicePose_t  OpenVRApplication::render_to_VR(void(*renderfunction)(i
 		render_to_offsetFBO(LEFTPOST);
 		render_to_offsetFBO(RIGHTPOST);
 		pose = submitFramesOpenGL(FBOtexture[RIGHTEYE + 2], FBOtexture[LEFTEYE + 2]);
-		PollEvent();
 		// pulling this manually from main? probably should be done differently.. just commented to prevent double code.
 		// GetCoords();
 	}
