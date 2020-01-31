@@ -28,7 +28,7 @@ using namespace glm;
 #endif
 #define MSAAFACT 2
 
-#define SSBO_SIZE 4
+#define SSBO_SIZE 512
 
 // Global objects
 OpenVRApplication * vrapp = NULL;
@@ -550,7 +550,7 @@ public:
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
 		//texture 2
-		str = resourceDir + "/indicator.jpg";
+		str = resourceDir + "/indicator.png";
 		strcpy(filepath, str.c_str());
 		data = stbi_load(filepath, &width, &height, &channels, 4);
 		glGenTextures(1, &Texture_indicator);
@@ -782,7 +782,7 @@ public:
 		// INIT gauge
 		initProgram(prog_gauge,
 			vector<string>({ "/shader_vertex_gauge.glsl", "/shader_fragment_gauge.glsl", "/shader_geometry_gauge.glsl" }),
-			vector<string>({ "P", "V", "M", "RotM", "HandPos", "gVP", "CamPos"}));
+			vector<string>({ "V", "RotM", "HandPos", "gVP", "CamPos"}));
 
 		// INIT post processing program
         initProgram(prog_post_proc,
@@ -806,7 +806,7 @@ public:
 	string RoundToString(float number, int digits) {
 		float powFact = pow(10.f, digits);
 		string numString = to_string(round(number *  powFact) / powFact);
-		return numString.erase(numString.find_last_not_of('0') + 1, std::string::npos);
+		return numString.erase(numString.find_first_of('.') + 1 + digits, std::string::npos);
 	}
     
     /****DRAW
@@ -1116,28 +1116,27 @@ public:
 		//ssbo_CPUMEM.io[0] = vec4(-cam_.pos, 0);
 		computeShader(); // prog_compute_shader->computeComputeShader();
 		amplitude = ssbo_CPUMEM.io[0].w;
-		cout << "UL.r " << ssbo_CPUMEM.io[0].y << " LR.r " << ssbo_CPUMEM.io[0].z << endl;
-		//amplitude = ssbo_CPUMEM.io[0].x;
+		//cout << "UL.r " << ssbo_CPUMEM.io[0].y << " LR.r " << ssbo_CPUMEM.io[0].z << endl;
 		//printVec(ssbo_CPUMEM.io[0], "cpumem io vector: ");
 		prog_compute_shader->unbind();
 		////
 
 		// Drawing text on hand position (previous M). extract to function and add for both hands?
 		// round(amplitude * 10000.f) / 10000.f
-		string amplString = RoundToString(amplitude, 4);
-		static float minAmpl = 1.f;
+		string amplString = RoundToString(amplitude, 2);
+		/*static float minAmpl = 1.f;
 		if (minAmpl > amplitude) minAmpl = amplitude;
-		string minAmplString = RoundToString(minAmpl, 4);
+		string minAmplString = RoundToString(minAmpl, 3);
 		static float maxAmpl = 0.f;
 		if (maxAmpl < amplitude) maxAmpl = amplitude;
-		string maxAmplString = RoundToString(maxAmpl, 4);
+		string maxAmplString = RoundToString(maxAmpl, 3);*/
 		// cout << amplString << endl;// " ----- ";
 
-		vec3 handTextOffset = vec3(0.015f, 0.015f, 0.f);
+		vec3 handTextOffset = vec3(-0.015f, -0.01f, 0.01f);
 		vec4 screenpos = P * V * vec4(handPosRightVec + handTextOffset, 1);
 		screenpos.x /= screenpos.w;
 		screenpos.y /= screenpos.w;
-		font->draw(screenpos.x, screenpos.y + 0.05f, 0.3f, (string)"Current: " + amplString, 1.f, 1.f, 1.f);
+		font->draw(screenpos.x, screenpos.y, 0.3f, (string)"Amplitude: " + amplString, 1.f, 1.f, 1.f);
 		// font->draw(screenpos.x, screenpos.y - 0.05f, 0.3f, (string)"Max: " + maxAmplString, 1.f, 1.f, 1.f);
 		// font->draw(screenpos.x, screenpos.y - 0.15f, 0.3f, (string)"Min: " + minAmplString, 1.f, 1.f, 1.f);
 		font->draw();
@@ -1149,13 +1148,7 @@ public:
 		glBindTexture(GL_TEXTURE_2D, Texture_gauge);
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, Texture_indicator);
-		//send the matrices to the shaders
-		glUniformMatrix4fv(prog_gauge->getUniform("P"), 1, GL_FALSE, &P[0][0]);
 		glUniformMatrix4fv(prog_gauge->getUniform("V"), 1, GL_FALSE, &V[0][0]);
-		// no M needed here? 
-		M = mat4(1);
-		glUniformMatrix4fv(prog_gauge->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-		// TODO: probably get proper Rotation matrix here
 		glUniformMatrix4fv(prog_gauge->getUniform("RotM"), 1, GL_FALSE, &Ry[0][0]);
 		glUniformMatrix4fv(prog_gauge->getUniform("gVP"), 1, GL_FALSE, &(P*V)[0][0]);
 		vec3 camPosVec = vec3(camPos[3]);

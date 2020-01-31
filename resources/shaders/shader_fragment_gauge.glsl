@@ -15,8 +15,9 @@ void main()
 //	color = vec4(1);
 // TODO: either make two shaders or find a way to distinguish when to render gauge and when indicator.
 	color = texture2D(tex_gauge, TexCoord);
-	if (color.r == 0 && color.g == 0 && color.b == 0) {
-        //discard;
+	color += texture2D(tex_indicator, TexCoord);
+	if (color.r == 0 && color.g == 0 && color.b == 0 || color.a == 0) {
+        discard;
     }
 	//color = vec4(1,1,1,1);
 	//color = texture(tex, texcoord);
