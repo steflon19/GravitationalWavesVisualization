@@ -123,8 +123,11 @@ public:
     
     std::shared_ptr<Program> prog_debug;
 
-	vec3 ControllerPosLeft = vec3(0);
+	vec3 controller_pos_left_ = vec3(0);
 	vec3 controller_pos_right_ = vec3(0);
+
+	vec3 controller_data_right_ = vec3(0);
+	vec3 controller_data_left_ = vec3(0);
 
     // Contains vertex information for OpenGL
     GLuint VertexArrayID;
@@ -1047,7 +1050,7 @@ public:
 		glUniform3fv(prog_hand_left->getUniform("colordot"), 1, &colordot.x);
 
 		M = mat4(1);
-		M = translate(mat4(1), ControllerPosLeft) * scale(mat4(1), vec3(controllerScale));
+		M = translate(mat4(1), controller_pos_left_) * scale(mat4(1), vec3(controllerScale));
 		glUniformMatrix4fv(prog_hand_left->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 
 		// shape_hand_left->draw(prog_hand_left, false);
@@ -1175,7 +1178,13 @@ public:
 			glDrawArrays(GL_TRIANGLES, 0, 18);
 			prog_debug->unbind();
 		}
-        
+
+		if (controller_data_right_.x > 0.05 || controller_data_right_.y > 0.05 || controller_data_right_.z > 0.05) {
+			printVec(controller_data_right_, " controller data ");
+		}
+		else
+			cout << " controller data empty " << endl;
+
         // fix this, its not rendering anything??
 //        prog_skybox->bind();
 //        M =  glm::mat4(1);
@@ -1261,9 +1270,14 @@ int main(int argc, char **argv)
         // Render scene.
 		// 1 = left and 2 = right
 		vr::HmdVector3_t controllerPos = vrapp->GetControllerPos(1);
-		application->ControllerPosLeft = vec3(controllerPos.v[0], controllerPos.v[1], controllerPos.v[2]);
+		application->controller_pos_left_ = vec3(controllerPos.v[0], controllerPos.v[1], controllerPos.v[2]);
 		controllerPos = vrapp->GetControllerPos(2);
 		application->controller_pos_right_ = vec3(controllerPos.v[0], controllerPos.v[1], controllerPos.v[2]);
+		// TODO: remove this, just for debugging now.
+		application->controller_pos_right_ = application->controller_pos_left_;
+
+		application->controller_data_left_ = vrapp->GetTrigAndPad(1);
+		application->controller_data_right_ = vrapp->GetTrigAndPad(2);
 
 		vrapp->render_to_VR(my_render);
 		vrapp->render_to_screen(1);//0..left eye, 1..right eye

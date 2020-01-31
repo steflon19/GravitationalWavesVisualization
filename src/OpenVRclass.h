@@ -138,10 +138,11 @@ public:
 	int get_render_width() { return rtWidth; }
 	int get_render_height() { return rtHeight; }
 	void PrintTrackedDevices();
-	void HandleVRButtonEvent(vr::VREvent_t event);
+	void HandleVRButtonEvent(const vr::VREvent_t& event);
 	void HandleVRInput(const vr::VREvent_t& event);
 	void PollEvent();
 	void GetCoords();
+	vec3 GetTrigAndPad(int handType);
 	vr::HmdVector3_t GetControllerPos(int index);
 	vr::HmdVector3_t GetPosition(vr::HmdMatrix34_t matrix);
 	void SetupControllers();

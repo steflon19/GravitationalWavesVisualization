@@ -216,22 +216,38 @@ void OpenVRApplication::HandleVRInput(const vr::VREvent_t& event) {
 	switch (event.eventType)
 	{
 		// TODO: maybe some other stuff here
-	case vr::k_EButton_SteamVR_Touchpad:
-		//cout << "VR event SteamVR Touchpad " << event.eventType << endl;
-		break;
-	case vr::k_EButton_DPad_Down:
-	case vr::k_EButton_DPad_Right:
-	case vr::k_EButton_DPad_Left:
-	case vr::k_EButton_DPad_Up:
-		//cout << "VR event DPAD " << event.eventType << endl;
-		break;
-	default:
-		//std::cout << "VR event " << event.eventType << std::endl;
-		HandleVRButtonEvent(event);
+		case vr::VREvent_TouchPadMove:
+			cout << "VR event VREvent_TouchPadMove " << event.eventType << endl;
+			break;
+		case vr::VREvent_DualAnalog_Press:
+		case vr::VREvent_DualAnalog_Unpress:
+		case vr::VREvent_DualAnalog_Touch:
+		case vr::VREvent_DualAnalog_Untouch:
+		case vr::VREvent_DualAnalog_Move:
+		case vr::VREvent_DualAnalog_ModeSwitch1:
+		case vr::VREvent_DualAnalog_ModeSwitch2:
+		case vr::VREvent_DualAnalog_Cancel:
+			vr::VREvent_DualAnalog_t dat = event.data.dualAnalog;
+			cout << "VR event dualAnalog " << event.eventType << endl;
+			break;
+		case vr::VREvent_MouseMove:
+		case vr::VREvent_MouseButtonDown:
+		case vr::VREvent_MouseButtonUp:
+			cout << "VR event SteamVR Mouse " << event.eventType << endl;
+			break;
+		case vr::VREvent_ButtonPress:
+		case vr::VREvent_ButtonTouch:
+		case vr::VREvent_ButtonUnpress:
+		case vr::VREvent_ButtonUntouch:
+			HandleVRButtonEvent(event);
+		default:
+			// HandleVRButtonEvent(event);
+			std::cout << "VR event default? " << event.eventType << std::endl;
 	}
 }
 
-void OpenVRApplication::HandleVRButtonEvent(vr::VREvent_t event) {
+void OpenVRApplication::HandleVRButtonEvent(const vr::VREvent_t& event) {
+	std::cout << "HandleVRButtonEvent? " << event.eventType << std::endl;
 	char* buf = new char[100];
 	if (event.eventType >= 200 && event.eventType <= 203) {
 		if (event.data.controller.button == vr::k_EButton_A && event.eventType == vr::VREvent_ButtonPress)
@@ -239,11 +255,56 @@ void OpenVRApplication::HandleVRButtonEvent(vr::VREvent_t event) {
 		else if (event.data.controller.button == vr::k_EButton_DPad_Up)
 			cout << "DPAD UP!!!! " << event.eventType << endl;
 		else if (event.data.controller.button == vr::k_eControllerAxis_TrackPad)
+			// no x or y available here, thought it should be???
+			vr::VREvent_Data_t dat = event.data;
 			cout << "Controller axis?!" << event.eventType << endl;
 	}
 	else {
 		sprintf(buf, "\nEVENT--(OpenVR) Event: %d - %i", event.eventType, event.data.controller.button);
 	}
+
+	//char* buf = new char[100];
+	//switch (event.eventType) {
+	//	case vr::VREvent_ButtonPress:
+	//	case vr::VREvent_ButtonUnpress:
+	//	case vr::VREvent_ButtonTouch:
+	//	case vr::VREvent_ButtonUntouch:
+	//		if (event.data.controller.button == vr::k_EButton_A && event.eventType == vr::VREvent_ButtonPress)
+	//			cout << "handling A/X button press" << endl; // TODO: display stuff here probably
+
+	//		switch (event.data.controller.button) {
+	//			/*case vr::k_eControllerAxis_TrackPad):
+	//				cout << "Controller axis?" << event.eventType << endl;*/
+	//		// case vr::k_EButton_SteamVR_Touchpad: // this is axis 0 ?? 
+	//		case vr::k_EButton_Axis0:
+	//		case vr::k_EButton_Axis1:
+	//		case vr::k_EButton_Axis2:
+	//		case vr::k_EButton_Axis3:
+	//		case vr::k_EButton_Axis4:
+	//			vr::VREvent_DualAnalog_t dat = event.data.dualAnalog;
+	//			cout << "VR Button event. SteamVR Touchpad " << event.data.controller.button << " dat " << dat.x << " - " << dat.y << " which " << dat.which << endl;
+	//			break;
+	//		case vr::k_EButton_DPad_Down:
+	//		case vr::k_EButton_DPad_Right:
+	//		case vr::k_EButton_DPad_Left:
+	//		case vr::k_EButton_DPad_Up:
+	//			cout << "VR Button event. DPAD " << event.eventType << endl;
+	//			break;
+	//		case vr::k_EButton_System:
+	//			cout << "VR Button event. System " << event.eventType << endl;
+	//		case vr::k_EButton_ApplicationMenu:
+	//			cout << "VR Button event. Application Menu " << event.eventType << endl;
+	//		case vr::k_EButton_A:
+	//			cout << "VR Button event. A " << event.eventType << endl;
+	//		case vr::k_EButton_Grip:
+	//			cout << "VR Button event. Grip " << event.eventType << endl;
+	//		default:
+	//			cout << "VR Button event. Some other button?? " << event.data.controller.button << endl;
+	//		}
+	//		break;
+	//	default:
+	//		sprintf(buf, "\nEVENT--(OpenVR) Event: %d - %i", event.eventType, event.data.controller.button);
+	//}
 }
 
 vr::HmdVector3_t OpenVRApplication::GetPosition(vr::HmdMatrix34_t matrix)
@@ -275,11 +336,47 @@ void OpenVRApplication::GetCoords() {
 			continue;
 
 		hmd->GetControllerStateWithPose(vr::TrackingUniverseStanding, pC->deviceId, &controllerState, sizeof(controllerState), &trackedDevicePose);
+		
+		int t = pC->idtrigger;
+		int p = pC->idpad;
+
 		pC->pos = GetPosition(trackedDevicePose.mDeviceToAbsoluteTracking);
+		pC->trigVal = controllerState.rAxis[t].x;
+		pC->padX = controllerState.rAxis[p].x;
+		pC->padY = controllerState.rAxis[p].y;
+
+		cout << "padX " << pC->padX << " padY " << pC->padY << endl;
+
 		// std::cout << "device pos " << pC->pos.v[0] << " and " << pC->pos.v[1] << " and " << pC->pos.v[2] << std::endl;
 		//rot = GetRotation(trackedDevicePose.mDeviceToAbsoluteTracking);
 	}
 }
+
+/// returns vec3 with x->padX y->padY and z->trigVal
+vec3 OpenVRApplication::GetTrigAndPad(int hand_type) {
+	// GetCoords();
+	if (hand_type > 2 || hand_type < 1) cout << "Error, invalid controllers index " << hand_type << ". only 1 or 2 valid" << endl;
+
+	ControllerData* pC = &(controllers[0]);
+	if (!hmd)
+		return vec3(0);
+
+	vec3 retVal = vec3(0);
+
+	if (pC->hand != hand_type)
+	{
+		pC = &(controllers[1]);
+		if (pC->hand != hand_type) {
+			cout << "controller not available? " << hand_type << endl;
+			return retVal;
+		}
+	}
+	retVal.x = pC->padX;
+	retVal.y = pC->padY;
+	retVal.z = pC->trigVal;
+	return retVal;
+}
+
 
 vr::HmdVector3_t OpenVRApplication::GetControllerPos(int hand_type) {
 	GetCoords();
