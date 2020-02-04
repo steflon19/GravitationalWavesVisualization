@@ -140,7 +140,7 @@ public:
     GLuint cubemapTexture, FBO_MSAA, FBO_MSAA_depth, FBO_MSAA_color, VertexArrayIDBox, VertexBufferIDBox;
 
 	bool paused = false;
-	bool manualMode = true;
+	bool manualMode = false;
 
 	ssbo_data ssbo_CPUMEM;
 	GLuint ssbo_GPU_id;
@@ -187,7 +187,7 @@ public:
 
 		// utility
 		if (key == GLFW_KEY_R && action == GLFW_RELEASE) {
-			earth_pos_ = vec3(vec3(-1.5f, -0.2f, 0.f));
+			earth_pos_ = vec3(vec3(-1.5f, 0.2f, 0.f));
 			manual_hand_pos_left_ = vec3(-2.f, 0.f, 0.1f);
 			manual_hand_pos_right_ = vec3(-1.f, 0.5f, 0.1f);
 		}
@@ -196,7 +196,7 @@ public:
 		if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_RELEASE) { cam_.shift_active = 0; }
 
 		// CAMERA
-		// move left/right
+		// move fwd/bkwd
 		if (key == GLFW_KEY_W && action == GLFW_PRESS) { cam_.w = 1; }
 		if (key == GLFW_KEY_W && action == GLFW_RELEASE) { cam_.w = 0; }
 		if (key == GLFW_KEY_S && action == GLFW_PRESS) { cam_.s = 1; }
@@ -289,9 +289,6 @@ public:
         glGenerateMipmap(GL_TEXTURE_2D);
         return textureID;
     }
-    void bindTexture() {
-        
-    }
     
     GLuint VAOX, VAOY, VAOZ, VBOX, VBOY, VBOZ;
     GLuint VAODebug, VBODebug;
@@ -303,8 +300,8 @@ public:
         // generating the grid
         std::vector<vec3> grid_x, grid_y, grid_z;
         float step = 0.125/2;
-        float gridSize = 3.;
-        int numPoints = 10;
+        float gridSize = 2.; // 4
+        int numPoints = 5; // 20
         float innerStep = step / (float)numPoints;
         // the grid is rendered as LINE_STRIP, therefore we always set pairs of points (a->b, b->c, etc..)
         for (float z = -gridSize; z <= 0; z += step)
@@ -857,7 +854,6 @@ public:
 			currenteye = vr::Eye_Right;
 		if (!vrapp->get_projection_matrix(currenteye, 0.000001f, 4000.0f, P))
 			P = glm::perspective((float)((float)PI / 4.), (float)((float)width / (float)height), 0.000001f, 4000.0f);
-
         
         static float angle = 0.;
 		if (!paused) {
@@ -1066,9 +1062,21 @@ public:
 		M = mat4(1);
 		// TODO: find actual values for proper translation to "ingame hmd space"
 		// pos = glm::vec3(1.5, -0., -0.8);
+
+		if (vrapp->up) { cam_.w = 1; }
+		else { cam_.w = 0; }
+		if (vrapp->down) { cam_.s = 1; }
+		else { cam_.s = 0; }
+		if (vrapp->left) { cam_.a = 1; }
+		else { cam_.a = 0; }
+		if (vrapp->right) { cam_.d = 1; }
+		else { cam_.d = 0; }
+
 		if (!manualMode) {
-			vec3 transVec = vec3(-1.5f, -1.2f, 0.5f);// * 1.f/controllerScale;
-			M = translate(mat4(1), controller_pos_right_ * (1.f) + transVec);// *translate(mat4(1), transVec);
+			vec3 transVec = -(cam_.pos_) + vec3(-0.2f, -1.2f, 0.f);// * 1.f/controllerScale;
+			M = translate(mat4(1), controller_pos_right_ + transVec);
+			//printVec(controller_pos_right_);
+			//printVec(cam_transVecpos_);
 		}
 		else {
 			if (left_ == 1) {
@@ -1151,8 +1159,7 @@ public:
 		glUniformMatrix4fv(prog_gauge->getUniform("V"), 1, GL_FALSE, &V[0][0]);
 		glUniformMatrix4fv(prog_gauge->getUniform("RotM"), 1, GL_FALSE, &Ry[0][0]);
 		glUniformMatrix4fv(prog_gauge->getUniform("gVP"), 1, GL_FALSE, &(P*V)[0][0]);
-		vec3 camPosVec = vec3(camPos[3]);
-		glUniform3fv(prog_gauge->getUniform("CamPos"), 1, &camPosVec.x);
+		glUniform3fv(prog_gauge->getUniform("CamPos"), 1, &(cam_.pos_).x);
 		glUniform3fv(prog_gauge->getUniform("HandPos"), 1, &handPosRightVec.x);
 		glUniform1f(prog_gauge->getUniform("amplitude"), amplitude);
 		glBindVertexArray(VAOGauge);
@@ -1242,7 +1249,7 @@ int main(int argc, char **argv)
 	windowManager->init(vrapp->get_render_width(), vrapp->get_render_height());
 
 	font->init();
-	font->set_font_size(.07f);
+	font->set_font_size(.05f);
 
 	windowManager->setEventCallbacks(application);
 	application->windowManager = windowManager;

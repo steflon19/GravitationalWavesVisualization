@@ -156,10 +156,32 @@ void OpenVRApplication::SetupControllers() {
 					sHand = 2;
 				pC->hand = sHand;
 				pC->deviceId = td;
+
+				for (int x = 0; x < vr::k_unControllerStateAxisCount; x++) {
+					int prop = hmd->GetInt32TrackedDeviceProperty(pC->deviceId,
+						(vr::ETrackedDeviceProperty)(vr::Prop_Axis0Type_Int32 + x));
+
+					if (prop == vr::k_eControllerAxis_Trigger)
+						pC->idtrigger = x;
+					else if (prop == vr::k_eControllerAxis_TrackPad)
+						pC->idpad = x;
+				}
+
 				numControllersInitialized++;
 			}
 		}
 	}
+}
+
+vec2 OpenVRApplication::GetTouchpadPositionsById(int id) {
+	for (int i = 0; i < 2; i++) {
+		ControllerData* pC = &(controllers[i]);
+		if (pC->deviceId == id) {
+			// cout << "getting stuff for " << id << " x " << pC->padX << " y " << pC->padY << endl;
+			return vec2(pC->padX, pC->padY);
+		}
+	}
+	return vec2(0);
 }
 
 void OpenVRApplication::PrintTrackedDevices() {
@@ -170,7 +192,7 @@ void OpenVRApplication::PrintTrackedDevices() {
 			char* td_name = new char();
 			hmd->GetStringTrackedDeviceProperty(td, vr::Prop_TrackingSystemName_String, td_name, vr::k_unMaxPropertyStringSize);
 			// TODO: idk, maybe do something with this info..
-			string sss = td_class == vr::ETrackedDeviceClass::TrackedDeviceClass_Controller ? " IS CONTROLLER" : " ";
+			string sss = td_class == (vr::ETrackedDeviceClass::TrackedDeviceClass_Controller) ? " IS CONTROLLER" : " ";
 			cout << "some info, type " << td_class << " name: " << td_name << sss << endl;
 		}
 	}
@@ -216,15 +238,6 @@ void OpenVRApplication::HandleVRInput(const vr::VREvent_t& event) {
 	switch (event.eventType)
 	{
 		// TODO: maybe some other stuff here
-	case vr::k_EButton_SteamVR_Touchpad:
-		//cout << "VR event SteamVR Touchpad " << event.eventType << endl;
-		break;
-	case vr::k_EButton_DPad_Down:
-	case vr::k_EButton_DPad_Right:
-	case vr::k_EButton_DPad_Left:
-	case vr::k_EButton_DPad_Up:
-		//cout << "VR event DPAD " << event.eventType << endl;
-		break;
 	default:
 		//std::cout << "VR event " << event.eventType << std::endl;
 		HandleVRButtonEvent(event);
@@ -236,10 +249,33 @@ void OpenVRApplication::HandleVRButtonEvent(vr::VREvent_t event) {
 	if (event.eventType >= 200 && event.eventType <= 203) {
 		if (event.data.controller.button == vr::k_EButton_A && event.eventType == vr::VREvent_ButtonPress)
 			cout << "handling A/X button press" << endl; // TODO: display stuff here probably
-		else if (event.data.controller.button == vr::k_EButton_DPad_Up)
-			cout << "DPAD UP!!!! " << event.eventType << endl;
-		else if (event.data.controller.button == vr::k_eControllerAxis_TrackPad)
-			cout << "Controller axis?!" << event.eventType << endl;
+		else if (event.data.controller.button == vr::k_EButton_SteamVR_Touchpad) {
+			cout << "k_EButton_SteamVR_Touchpad pressed!" << event.eventType << " - " << event.trackedDeviceIndex << endl;
+			if (event.eventType == vr::VREvent_ButtonPress) {
+				vec2 tpadVals = GetTouchpadPositionsById(event.trackedDeviceIndex);
+
+				if (tpadVals[0] < -0.7f) {
+					cout << " LEFT " << endl;
+					left = 1;
+				}
+				if (tpadVals[0] > 0.7f) {
+					cout << " RIGHT " << endl;
+					right = 1;
+				}
+				if (tpadVals[1] < -0.7f) {
+					cout << " DOWN " << endl;
+					down = 1;
+				}
+				if (tpadVals[1] > 0.7f) {
+					cout << " UP " << endl;
+					up = 1;
+				}
+
+			}
+			else if (event.eventType == vr::VREvent_ButtonUnpress)
+				up = down = left = right = 0;
+
+		}
 	}
 	else {
 		sprintf(buf, "\nEVENT--(OpenVR) Event: %d - %i", event.eventType, event.data.controller.button);
@@ -278,6 +314,13 @@ void OpenVRApplication::GetCoords() {
 		pC->pos = GetPosition(trackedDevicePose.mDeviceToAbsoluteTracking);
 		// std::cout << "device pos " << pC->pos.v[0] << " and " << pC->pos.v[1] << " and " << pC->pos.v[2] << std::endl;
 		//rot = GetRotation(trackedDevicePose.mDeviceToAbsoluteTracking);
+		int t = pC->idtrigger;
+		int p = pC->idpad;
+
+		//This is the call to get analog button data from the controllers
+		pC->trigVal = controllerState.rAxis[t].x;
+		pC->padX = controllerState.rAxis[p].x;
+		pC->padY = controllerState.rAxis[p].y;
 	}
 }
 
@@ -406,7 +449,7 @@ vr::TrackedDevicePose_t OpenVRApplication::submitFramesOpenGL(int leftEyeTex, in
 	float fFrameDuration = 1.f / fDisplayFrequency;
 	float fVsyncToPhotons = hmd->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SecondsFromVsyncToPhotons_Float);
 	float fPredictedSecondsFromNow = fFrameDuration * 2 - fSecondsSinceLastVsync + fVsyncToPhotons;
-	//hmd->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, fPredictedSecondsFromNow, trackedDevicePose, vr::k_unMaxTrackedDeviceCount);
+	hmd->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, fPredictedSecondsFromNow, trackedDevicePose, vr::k_unMaxTrackedDeviceCount);
 	// Change END
 
 	///\todo the documentation on this is completely unclear.  I have no idea which one is correct...
@@ -449,7 +492,7 @@ void OpenVRApplication::initVR()
 
 	vr::VRInput()->GetActionHandle("/actions/demo/in/TriggerHaptic", &m_actionTriggerHaptic);
 	vr::VRInput()->GetActionSetHandle("/actions/demo", &m_actionsetDemo);
-	PrintTrackedDevices();
+	// PrintTrackedDevices();
 
 }
 //*******************************************************************************************************************************************************
@@ -483,6 +526,16 @@ void OpenVRApplication::render_to_screen(int texture_num)
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 	prog.unbind();
 }
+mat4 getMatrix4FromSteamVRMatrix34(const vr::HmdMatrix34_t& mat)
+{
+	return mat4
+	{
+		mat.m[0][0], mat.m[0][1], mat.m[0][2], mat.m[0][3],
+		mat.m[1][0], mat.m[1][1], mat.m[1][2], mat.m[1][3],
+		mat.m[2][0], mat.m[2][1], mat.m[2][2], mat.m[2][3],
+		0.0f,		 0.0f,		  0.0f,		   1.0f
+	};
+}
 //*******************************************************************************************************************************************************
 void OpenVRApplication::render_to_FBO(int selectFBO, void(*renderfunction)(int, int, glm::mat4, int, bool))
 {
@@ -491,9 +544,10 @@ void OpenVRApplication::render_to_FBO(int selectFBO, void(*renderfunction)(int, 
 	if (hmd)
 	{
 		VRon = true;
-		for (int i = 0; i < 4; i++)
+		/*for (int i = 0; i < 4; i++)
 			for (int j = 0; j < 4; j++)
-				TR[i][j] = pose.mDeviceToAbsoluteTracking.m[i][j];
+				TR[i][j] = pose.mDeviceToAbsoluteTracking.m[i][j];*/
+		TR = getMatrix4FromSteamVRMatrix34(pose.mDeviceToAbsoluteTracking);
 	}
 	//free VIEW
 	mat4 vRx, vRy, vR;
@@ -507,10 +561,10 @@ void OpenVRApplication::render_to_FBO(int selectFBO, void(*renderfunction)(int, 
 		eyeoffset = vec4(eyeconvergence, 0, 0, 0);
 
 	//trackingM.set_transform_matrix
-	TR[0][3] = TR[1][3] = TR[2][3] = 0;
-	TR[3][0] = TR[3][1] = TR[3][2] = 0;
+	// TR[0][3] = TR[1][3] = TR[2][3] = 0;
+	// TR[3][0] = TR[3][1] = TR[3][2] = 0;
 
-	TR[3][3] = 1;
+	// TR[3][3] = 1;
 	mat4 tTR = transpose(TR);
 
 	eyeoffset = tTR * eyeoffset;

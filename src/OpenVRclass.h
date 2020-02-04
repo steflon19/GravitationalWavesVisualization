@@ -124,8 +124,8 @@ private:
 	void handleVRError(vr::EVRInitError err);
 	void initVR();
 public:
-	float eyeconvergence = 0.03;		// convergence point
-	float eyedistance = 0.15;		//3D intesity effec
+	float eyeconvergence = 0.02;		// convergence point // Oculus 0.03
+	float eyedistance = 0.07;		//3D intesity effec // Oculus 0.15
 	bool get_projection_matrix(vr::Hmd_Eye eEye, float nearZ, float farZ, mat4 &P)
 	{
 		if (!hmd) return false;
@@ -145,6 +145,7 @@ public:
 	vr::HmdVector3_t GetControllerPos(int index);
 	vr::HmdVector3_t GetPosition(vr::HmdMatrix34_t matrix);
 	void SetupControllers();
+	vec2 GetTouchpadPositionsById(int id);
 	OpenVRApplication();
 	bool init_buffers(string resourceDirectory,int msaa_fact);
 	virtual OpenVRApplication::~OpenVRApplication()
@@ -161,5 +162,7 @@ public:
 
 	bool GetDigitalActionState(vr::VRActionHandle_t action, vr::VRInputValueHandle_t* pDevicePath = nullptr);
 	bool GetDigitalActionRisingEdge(vr::VRActionHandle_t action, vr::VRInputValueHandle_t* pDevicePath = nullptr);
+
+	int up = 0, down = 0, left = 0, right = 0;
 };
 
