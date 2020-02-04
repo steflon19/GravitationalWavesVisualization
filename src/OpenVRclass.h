@@ -145,7 +145,7 @@ public:
 	vr::HmdVector3_t GetControllerPos(int index);
 	vr::HmdVector3_t GetPosition(vr::HmdMatrix34_t matrix);
 	void SetupControllers();
-	vec2 GetTouchpadPositionsById(int id);
+	vec3 GetAnalogValues(int id);
 	OpenVRApplication();
 	bool init_buffers(string resourceDirectory,int msaa_fact);
 	virtual OpenVRApplication::~OpenVRApplication()

@@ -7,7 +7,7 @@ uniform mat4 gVP;
 uniform vec3 CamPos;
 
 out vec2 TexCoord;
-
+// basecode from http://ogldev.atspace.co.uk/www/tutorial27/tutorial27.html
 void main() {
     vec3 Pos = gl_in[0].gl_Position.xyz;
     vec3 toCamera = normalize(CamPos - Pos);

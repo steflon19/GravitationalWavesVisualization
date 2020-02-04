@@ -107,6 +107,7 @@ private:
 
 	float sphere_advance_val_ = 0.005f;
 	
+	bool currentKeyDown = false;
 
 public:
     WindowManager * windowManager = nullptr;
@@ -180,6 +181,9 @@ public:
 
 	void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 		{
+
+		if (action == GLFW_PRESS) currentKeyDown = true; else if (action == GLFW_RELEASE) currentKeyDown = false;
+
 		if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		{
 			glfwSetWindowShouldClose(window, GL_TRUE);
@@ -707,8 +711,8 @@ public:
         GLSL::checkVersion();
 		setResourceDirectory(resDir);
         left_ =  right_ = forward_ = backward_ = 0;
-		earth_pos_ = vec3(-1.5f, -0.2f, 0.f);
-		cam_start_pos_ = vec3(1.5, -0., -0.8);
+		earth_pos_ = vec3(-1.5f, -0.05f, 0.f);
+		cam_start_pos_ = vec3(1.5, -0.1, -0.8);
 		cam_ = Camera(cam_start_pos_, vec3(0));
 		manual_hand_pos_left_ = vec3(-2.f, 0.f, 0.2f);
 		manual_hand_pos_right_ = vec3(-1.f, 0.f, 0.2f);
@@ -1064,13 +1068,13 @@ public:
 		// pos = glm::vec3(1.5, -0., -0.8);
 
 		if (vrapp->up) { cam_.w = 1; }
-		else { cam_.w = 0; }
+		else if (!currentKeyDown) { cam_.w = 0; }
 		if (vrapp->down) { cam_.s = 1; }
-		else { cam_.s = 0; }
+		else if (!currentKeyDown) { cam_.s = 0; }
 		if (vrapp->left) { cam_.a = 1; }
-		else { cam_.a = 0; }
+		else if (!currentKeyDown) { cam_.a = 0; }
 		if (vrapp->right) { cam_.d = 1; }
-		else { cam_.d = 0; }
+		else if (!currentKeyDown) { cam_.d = 0; }
 
 		if (!manualMode) {
 			vec3 transVec = -(cam_.pos_) + vec3(-0.2f, -1.2f, 0.f);// * 1.f/controllerScale;
