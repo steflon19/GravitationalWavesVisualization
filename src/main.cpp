@@ -89,6 +89,22 @@ public:
 	}
 };
 
+//*****************************************************************************************************************************
+inline void MatrixDecomposeYawPitchRoll(mat4  mat, vec3 &euler)
+{
+	euler.x = asinf(-mat[2][1]);                  // Pitch
+	if (cosf(euler.x) > 0.0001)                 // Not at poles
+	{
+		euler.y = atan2f(mat[2][0], mat[2][2]);     // Yaw
+		euler.z = atan2f(mat[0][1], mat[1][1]);     // Roll
+	}
+	else
+	{
+		euler.y = 0.0f;                         // Yaw
+		euler.z = atan2f(-mat[1][0], mat[0][0]);    // Roll
+	}
+}
+
 class Application : public EventCallbacks
 {
 private:
@@ -123,8 +139,8 @@ public:
     
     std::shared_ptr<Program> prog_debug;
 
-	vec3 ControllerPosLeft = vec3(0);
-	vec3 controller_pos_right_ = vec3(0);
+	vec3 controller_pos_left = vec3(0);
+	vec3 controller_pos_right = vec3(0);
 
     // Contains vertex information for OpenGL
     GLuint VertexArrayID;
@@ -141,6 +157,8 @@ public:
 
 	bool paused = false;
 	bool manualMode = false;
+
+	vec3 offsetVRpos = vec3(0, 0, 0);
 
 	ssbo_data ssbo_CPUMEM;
 	GLuint ssbo_GPU_id;
@@ -523,12 +541,12 @@ public:
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 		glGenerateMipmap(GL_TEXTURE_2D);
-		GLuint Tex5Location = glGetUniformLocation(prog_hand_left->pid, "tex");
-		glUseProgram(prog_hand_left->pid);
-		glUniform1i(Tex5Location, 0);
-		Tex5Location = glGetUniformLocation(prog_hand_right->pid, "tex");
+		GLuint Tex5Location = glGetUniformLocation(prog_hand_right->pid, "tex");
 		glUseProgram(prog_hand_right->pid);
 		glUniform1i(Tex5Location, 0);
+		/* Tex5Location = glGetUniformLocation(prog_hand_left->pid, "tex");
+		glUseProgram(prog_hand_left->pid);
+		glUniform1i(Tex5Location, 0);*/
         
         glBindVertexArray(0);
 
@@ -650,7 +668,7 @@ public:
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, FBO_MSAA_color, 0);
         glGenRenderbuffers(1, &FBO_MSAA_depth);
         glBindRenderbuffer(GL_RENDERBUFFER, FBO_MSAA_depth);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width* MSAAFACT, height* MSAAFACT);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32, width* MSAAFACT, height* MSAAFACT);
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, FBO_MSAA_depth);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
@@ -708,7 +726,7 @@ public:
 		setResourceDirectory(resDir);
         left_ =  right_ = forward_ = backward_ = 0;
 		earth_pos_ = vec3(-1.5f, -0.2f, 0.f);
-		cam_start_pos_ = vec3(1.5, -0., -0.8);
+		cam_start_pos_ = vec3(1.5, 1.7f, -0.8);
 		cam_ = Camera(cam_start_pos_, vec3(0));
 		manual_hand_pos_left_ = vec3(-2.f, 0.f, 0.2f);
 		manual_hand_pos_right_ = vec3(-1.f, 0.f, 0.2f);
@@ -726,7 +744,7 @@ public:
 		prog_binary_system = make_shared<Program>();
 		prog_post_proc = make_shared<Program>();
 
-		prog_hand_left = make_shared<Program>();
+		// prog_hand_left = make_shared<Program>();
 		prog_hand_right = make_shared<Program>();
 
 		prog_gauge = make_shared<Program>();
@@ -756,10 +774,10 @@ public:
 			vector<string>({ "vertPos", "vertNor", "vertTex" }));
 
 		// INIT Controller objects
-		initProgram(prog_hand_left,
+		/*initProgram(prog_hand_left,
 			vector<string>({ "/shader_vertex_sphere.glsl", "/shader_fragment_sphere.glsl" }),
 			vector<string>({ "P", "V", "M","lightpos" ,"colordot" }),
-			vector<string>({ "vertPos", "vertNor", "vertTex"}));
+			vector<string>({ "vertPos", "vertNor", "vertTex"}));*/
 		initProgram(prog_hand_right,
 			vector<string>({ "/shader_vertex_sphere.glsl", "/shader_fragment_sphere.glsl" }),
 			vector<string>({ "P", "V", "M","lightpos" ,"colordot" }),
@@ -779,7 +797,7 @@ public:
 		// INIT gauge
 		initProgram(prog_gauge,
 			vector<string>({ "/shader_vertex_gauge.glsl", "/shader_fragment_gauge.glsl", "/shader_geometry_gauge.glsl" }),
-			vector<string>({ "V", "RotM", "HandPos", "gVP", "CamPos", "amplitude"}));
+			vector<string>({ "V","P", "HandPos", "amplitude"}));
 
 		// INIT post processing program
         initProgram(prog_post_proc,
@@ -842,20 +860,78 @@ public:
         
         glm::mat4 V, M, P; //View, Model and Perspective matrix
 		mat4 camPos = cam_.process(frametime);
+
+		//// copy from special relativiy.. 
+		vec3 VRtrans = vec3(VRheadmatrix[3][0], VRheadmatrix[3][1], VRheadmatrix[3][2]);
+
+		mat4 VRMtrans = translate(mat4(1), VRtrans);
+
+		vec3 euler = vec3(0, 0, 0);
+
+		MatrixDecomposeYawPitchRoll(VRheadmatrix, euler);
+
+		mat4 Rz = rotate(mat4(1), euler.z, vec3(0, 0, 1));
+		mat4 VRheadmatrix_wide = VRheadmatrix;
+		vec4 convergencevec = Rz * vec4(VRheadmatrix[3][0], VRheadmatrix[3][1], VRheadmatrix[3][2], 1);
+		VRheadmatrix[3][0] = convergencevec.x;
+		VRheadmatrix[3][1] = convergencevec.y;
+		VRheadmatrix[3][2] = convergencevec.z;
+		VRheadmatrix_wide[3][0] = convergencevec.x;
+		VRheadmatrix_wide[3][1] = convergencevec.y;
+		VRheadmatrix_wide[3][2] = convergencevec.z;
+
+		mat4 Rhead;
+		//MatrixFromYawPitchRoll(euler, Rhead);
+		Rhead[3][0] = VRheadmatrix[3][0];
+		Rhead[3][1] = VRheadmatrix[3][1];
+		Rhead[3][2] = VRheadmatrix[3][2];
+
+		mat4 TVR = translate(mat4(1), vec3(-vrapp->position.x, -vrapp->position.y, 1 - vrapp->position.z));
+		TVR = translate(mat4(1), vec3(0, 0, 0));
+
+
+		//static int first = 0;
+		//if (first < 20)
+		//{
+		//	cout << vrapp->position.x << "' " << vrapp->position.y << endl;
+		//	offsetVRpos = vrapp->position;
+		//	//offsetVRpos.z = 0;
+		//	first++;
+		//}
+
+		TVR = translate(mat4(1), (vec3(-vrapp->position.x, -vrapp->position.y, -vrapp->position.z) + offsetVRpos));
+		VRheadmatrix_wide = VRheadmatrix_wide * TVR;
+		TVR = translate(mat4(1), (vec3(-vrapp->position.x, -vrapp->position.y, -vrapp->position.z) + offsetVRpos));
+
+		VRheadmatrix = VRheadmatrix * TVR;
+
+		//// end copy
+
 		V = VRheadmatrix * camPos;
         M = glm::mat4(1);
         // Apply orthographic projection....
-        P = glm::perspective((float)(PI / 4.), (float)(aspect), 0.1f, 1000.0f); //so much type casting... GLM metods are quite funny ones
+        P = glm::perspective((float)(PI / 4.), (float)(aspect), 0.1f, 100.0f); //so much type casting... GLM metods are quite funny ones
 
 		vr::Hmd_Eye currenteye;
 		if (eye == LEFTEYE)
 			currenteye = vr::Eye_Left;
 		else
 			currenteye = vr::Eye_Right;
-		if (!vrapp->get_projection_matrix(currenteye, 0.000001f, 4000.0f, P))
-			P = glm::perspective((float)((float)PI / 4.), (float)((float)width / (float)height), 0.000001f, 4000.0f);
+		if (!vrapp->get_projection_matrix(currenteye, 0.01f, 400.0f, P))
+			P = glm::perspective((float)((float)PI / 4.), (float)((float)width / (float)height), 0.01f, 400.0f);
         
         static float angle = 0.;
+
+		static int debounceTrigger = 0;
+		if (vrapp->trigger) {
+			paused = true;
+			debounceTrigger = 0;
+		}
+		else if (debounceTrigger < 5) {
+			debounceTrigger++;
+			paused = false;
+		}
+
 		if (!paused) {
 			angle += sin(frametime* bi_star_facts.y);
 		}
@@ -1032,7 +1108,8 @@ public:
 
 		// Render Controllers
 		float controllerScale = 0.008f;
-		prog_hand_left->bind();
+
+		/*prog_hand_left->bind();
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, Texture_marble);
 		glUniformMatrix4fv(prog_hand_left->getUniform("P"), 1, GL_FALSE, &P[0][0]);
@@ -1043,11 +1120,11 @@ public:
 		glUniform3fv(prog_hand_left->getUniform("colordot"), 1, &colordot.x);
 
 		M = mat4(1);
-		M = translate(mat4(1), ControllerPosLeft) * scale(mat4(1), vec3(controllerScale));
+		M = translate(mat4(1), controller_pos_left) * scale(mat4(1), vec3(controllerScale));
 		glUniformMatrix4fv(prog_hand_left->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 
 		// shape_hand_left->draw(prog_hand_left, false);
-		prog_hand_left->unbind();
+		prog_hand_left->unbind();*/
 
 		prog_hand_right->bind();
 		glActiveTexture(GL_TEXTURE0);
@@ -1071,11 +1148,14 @@ public:
 		else { cam_.a = 0; }
 		if (vrapp->right) { cam_.d = 1; }
 		else { cam_.d = 0; }
+		
 
 		if (!manualMode) {
-			vec3 transVec = -(cam_.pos_) + vec3(-0.2f, -1.2f, 0.f);// * 1.f/controllerScale;
-			M = translate(mat4(1), controller_pos_right_ + transVec);
-			//printVec(controller_pos_right_);
+			// controller_pos_right -= ((cam_.pos_) + vec3(0.2f, 1.2f, 0.f));// * 1.f/controllerScale;
+			vec3 transVec = -(cam_.pos_);
+			//transVec += vec3(0.2f, 1.f, 0.2f);
+			M = translate(mat4(1), controller_pos_right + transVec);
+			//printVec(controller_pos_right);
 			//printVec(cam_transVecpos_);
 		}
 		else {
@@ -1100,8 +1180,7 @@ public:
 			M = translate(mat4(1), manual_hand_pos_right_);
 		}
 		M *= scale(mat4(1), vec3(controllerScale));
-		mat4 handPosRightMat = M;
-		vec3 handPosRightVec = vec3(M[3]); //vec3((V * M)[3]); // TODO: check why multiplied with V
+	    vec3 handPosRightVecScaled = vec3(M[3]); //vec3((V * M)[3]); // TODO: check why multiplied with V
 
 		float amplitude = 0.f;
 
@@ -1109,7 +1188,7 @@ public:
 		//cout << "POS "; printVec(vec3(M[3])); cout << " trans: "; printVec(transVec); cout << " and diff "; printVec(vec3(M[3]) - transVec);
 		glUniformMatrix4fv(prog_hand_right->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 
-		// shape_hand_right->draw(prog_hand_right, false);
+		shape_hand_right->draw(prog_hand_right, false);
 		prog_hand_right->unbind();
 
 		//// proper amplitude calculation with compute shader
@@ -1118,7 +1197,7 @@ public:
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, Texture_spiral);		
 		glUniformMatrix4fv(prog_compute_shader->getUniform("Ry"), 1, GL_FALSE, &Ry[0][0]);
-		glUniform3fv(prog_compute_shader->getUniform("HandPos"), 1, &handPosRightVec.x);
+		glUniform3fv(prog_compute_shader->getUniform("HandPos"), 1, &handPosRightVecScaled.x);
 		glUniform2fv(prog_compute_shader->getUniform("bi_star_facts"), 1, &bi_star_facts.x);
 		// send additional data "down" to gpu with the buffer.
 		//ssbo_CPUMEM.io[0] = vec4(-cam_.pos, 0);
@@ -1131,7 +1210,7 @@ public:
 
 		// Drawing text on hand position (previous M). extract to function and add for both hands?
 		// round(amplitude * 10000.f) / 10000.f
-		string amplString = RoundToString(amplitude, 2);
+		string amplString = RoundToString(amplitude, 3);
 		/*static float minAmpl = 1.f;
 		if (minAmpl > amplitude) minAmpl = amplitude;
 		string minAmplString = RoundToString(minAmpl, 3);
@@ -1140,11 +1219,11 @@ public:
 		string maxAmplString = RoundToString(maxAmpl, 3);*/
 		// cout << amplString << endl;// " ----- ";
 
-		vec3 handTextOffset = vec3(0.f, -0.02f, 0.01f);
-		vec4 screenpos = P * V * vec4(handPosRightVec + handTextOffset, 1);
+		vec3 handTextOffset = vec3(-0.02f, -0.02f, 0.01f);
+		vec4 screenpos = P * V * vec4(handPosRightVecScaled + handTextOffset, 1);
 		screenpos.x /= screenpos.w;
 		screenpos.y /= screenpos.w;
-		font->draw(screenpos.x, screenpos.y, 0.3f, (string)"Amplitude: " + amplString, 1.f, 1.f, 1.f);
+		font->draw(screenpos.x, screenpos.y, 0.3f, amplString, 1.f, 1.f, 1.f);
 		// font->draw(screenpos.x, screenpos.y - 0.05f, 0.3f, (string)"Max: " + maxAmplString, 1.f, 1.f, 1.f);
 		// font->draw(screenpos.x, screenpos.y - 0.15f, 0.3f, (string)"Min: " + minAmplString, 1.f, 1.f, 1.f);
 		font->draw();
@@ -1157,10 +1236,8 @@ public:
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, Texture_indicator);
 		glUniformMatrix4fv(prog_gauge->getUniform("V"), 1, GL_FALSE, &V[0][0]);
-		glUniformMatrix4fv(prog_gauge->getUniform("RotM"), 1, GL_FALSE, &Ry[0][0]);
-		glUniformMatrix4fv(prog_gauge->getUniform("gVP"), 1, GL_FALSE, &(P*V)[0][0]);
-		glUniform3fv(prog_gauge->getUniform("CamPos"), 1, &(cam_.pos_).x);
-		glUniform3fv(prog_gauge->getUniform("HandPos"), 1, &handPosRightVec.x);
+		glUniformMatrix4fv(prog_gauge->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		glUniform3fv(prog_gauge->getUniform("HandPos"), 1, &handPosRightVecScaled.x);
 		glUniform1f(prog_gauge->getUniform("amplitude"), amplitude);
 		glBindVertexArray(VAOGauge);
 		glDrawArrays(GL_POINTS, 0, 1);
@@ -1249,7 +1326,7 @@ int main(int argc, char **argv)
 	windowManager->init(vrapp->get_render_width(), vrapp->get_render_height());
 
 	font->init();
-	font->set_font_size(.05f);
+	font->set_font_size(.035f);
 
 	windowManager->setEventCallbacks(application);
 	application->windowManager = windowManager;
@@ -1268,9 +1345,9 @@ int main(int argc, char **argv)
         // Render scene.
 		// 1 = left and 2 = right
 		vr::HmdVector3_t controllerPos = vrapp->GetControllerPos(1);
-		application->ControllerPosLeft = vec3(controllerPos.v[0], controllerPos.v[1], controllerPos.v[2]);
+		application->controller_pos_left = vec3(controllerPos.v[0], controllerPos.v[1], controllerPos.v[2]);
 		controllerPos = vrapp->GetControllerPos(2);
-		application->controller_pos_right_ = vec3(controllerPos.v[0], controllerPos.v[1], controllerPos.v[2]);
+		application->controller_pos_right = vec3(controllerPos.v[0], controllerPos.v[1], controllerPos.v[2]);
 
 		vrapp->render_to_VR(my_render);
 		vrapp->render_to_screen(1);//0..left eye, 1..right eye

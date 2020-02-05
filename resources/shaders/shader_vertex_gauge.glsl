@@ -3,7 +3,6 @@
 layout(location = 0) in vec3 vertPos;
 
 uniform mat4 V;
-uniform mat4 RotM;
 uniform vec3 HandPos;
 out vec3 vertex_pos;
 out vec3 camvertex_pos;

@@ -124,8 +124,9 @@ private:
 	void handleVRError(vr::EVRInitError err);
 	void initVR();
 public:
+	vec3 position = vec3(0, 0, 0);
 	float eyeconvergence = 0.02;		// convergence point // Oculus 0.03
-	float eyedistance = 0.07;		//3D intesity effec // Oculus 0.15
+	float eyedistance = 0.06;		//3D intesity effec // Oculus 0.15
 	bool get_projection_matrix(vr::Hmd_Eye eEye, float nearZ, float farZ, mat4 &P)
 	{
 		if (!hmd) return false;
@@ -163,6 +164,6 @@ public:
 	bool GetDigitalActionState(vr::VRActionHandle_t action, vr::VRInputValueHandle_t* pDevicePath = nullptr);
 	bool GetDigitalActionRisingEdge(vr::VRActionHandle_t action, vr::VRInputValueHandle_t* pDevicePath = nullptr);
 
-	int up = 0, down = 0, left = 0, right = 0;
+	int up = 0, down = 0, left = 0, right = 0, trigger = 0;
 };
 

@@ -544,10 +544,10 @@ void OpenVRApplication::render_to_FBO(int selectFBO, void(*renderfunction)(int, 
 	if (hmd)
 	{
 		VRon = true;
-		/*for (int i = 0; i < 4; i++)
+		for (int i = 0; i < 4; i++)
 			for (int j = 0; j < 4; j++)
-				TR[i][j] = pose.mDeviceToAbsoluteTracking.m[i][j];*/
-		TR = getMatrix4FromSteamVRMatrix34(pose.mDeviceToAbsoluteTracking);
+				TR[i][j] = pose.mDeviceToAbsoluteTracking.m[i][j];
+		//TR = getMatrix4FromSteamVRMatrix34(pose.mDeviceToAbsoluteTracking);
 	}
 	//free VIEW
 	mat4 vRx, vRy, vR;
@@ -561,10 +561,12 @@ void OpenVRApplication::render_to_FBO(int selectFBO, void(*renderfunction)(int, 
 		eyeoffset = vec4(eyeconvergence, 0, 0, 0);
 
 	//trackingM.set_transform_matrix
-	// TR[0][3] = TR[1][3] = TR[2][3] = 0;
-	// TR[3][0] = TR[3][1] = TR[3][2] = 0;
+	 position = vec3(TR[0][3], TR[1][3], TR[2][3]);
 
-	// TR[3][3] = 1;
+	 TR[0][3] = TR[1][3] = TR[2][3] = 0;
+	 TR[3][0] = TR[3][1] = TR[3][2] = 0;
+
+	 TR[3][3] = 1;
 	mat4 tTR = transpose(TR);
 
 	eyeoffset = tTR * eyeoffset;
