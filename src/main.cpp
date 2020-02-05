@@ -47,7 +47,7 @@ class Camera
 {
 public:
 	glm::vec3 pos_, rot_;
-	int w, a, s, d, space, c, shift_active;
+	int w, a, s, d, left, right, space, c, shift_active;
 	Camera()
 	{
 		w = a = s = d = space = c = shift_active = 0;
@@ -62,13 +62,17 @@ public:
 	}
 	glm::mat4 process(double ftime)
 	{
-		float speed = 0;
+		float speedZ = 0;
 		float speedY = 0;
-		if (shift_active == 0 && w == 1) { speed = 1 * ftime; }
-		else if (shift_active == 0 && s == 1) { speed = -1 * ftime; }
+		float speedX = 0;
+		if (shift_active == 0 && w == 1) { speedZ = 1 * ftime; }
+		else if (shift_active == 0 && s == 1) { speedZ = -1 * ftime; }
 
 		if (space == 1) { speedY = -1 * ftime; }
 		else if (c == 1) { speedY = 1 * ftime; }
+
+		if (left == 1) { speedX = 1 * ftime; }
+		else if (right == 1) { speedX = -1 * ftime; }
 
 		float angle_y = 0;
 		if (a == 1) { angle_y = -1 * ftime; }
@@ -81,7 +85,7 @@ public:
 		rot_.x += angle_z;
 		glm::mat4 R_Y = glm::rotate(glm::mat4(1), rot_.y, glm::vec3(0, 1, 0));
 		glm::mat4 R_X = glm::rotate(glm::mat4(1), rot_.x, glm::vec3(1, 0, 0));
-		glm::vec4 dir = glm::vec4(0, speedY, speed, 1);
+		glm::vec4 dir = glm::vec4(speedX, speedY, speedZ, 1);
 		dir = dir * R_Y * R_X;
 		pos_ += glm::vec3(dir.x, dir.y, dir.z);
 		glm::mat4 T = glm::translate(glm::mat4(1), pos_);
@@ -157,6 +161,7 @@ public:
     GLuint cubemapTexture, FBO_MSAA, FBO_MSAA_depth, FBO_MSAA_color, VertexArrayIDBox, VertexBufferIDBox;
 
 	bool paused = false;
+	bool manualPaused = false;
 	bool manualMode = false;
 
 	vec3 offsetVRpos = vec3(0, 0, 0);
@@ -209,9 +214,10 @@ public:
 
 		// utility
 		if (key == GLFW_KEY_R && action == GLFW_RELEASE) {
-			earth_pos_ = vec3(vec3(-1.5f, 0.2f, 0.f));
+			earth_pos_ = vec3(vec3(-1.5f, -0.05f, 0.f));
 			manual_hand_pos_left_ = vec3(-2.f, 0.f, 0.1f);
 			manual_hand_pos_right_ = vec3(-1.f, 0.5f, 0.1f);
+			bi_star_facts = vec2(1, 1);
 		}
 
 		if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS) { cam_.shift_active = 1; }
@@ -228,6 +234,11 @@ public:
 		if (key == GLFW_KEY_A && action == GLFW_RELEASE) { cam_.a = 0; }
 		if (key == GLFW_KEY_D && action == GLFW_PRESS) { cam_.d = 1; }
 		if (key == GLFW_KEY_D && action == GLFW_RELEASE) { cam_.d = 0; }
+		// move left/right
+		if (key == GLFW_KEY_Q && action == GLFW_PRESS) { cam_.left = 1; }
+		if (key == GLFW_KEY_Q && action == GLFW_RELEASE) { cam_.left = 0; }
+		if (key == GLFW_KEY_E && action == GLFW_PRESS) { cam_.right = 1; }
+		if (key == GLFW_KEY_E && action == GLFW_RELEASE) { cam_.right = 0; }
 		// move up/down
 		if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) { cam_.space = 1; }
 		if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE) { cam_.space = 0; }
@@ -926,17 +937,15 @@ public:
         
         static float angle = 0.;
 
-		static int debounceTrigger = 0;
-		if (vrapp->trigger) {
-			paused = true;
-			debounceTrigger = 0;
+		// crude pause from controller.. works so..
+		if (vrapp->menu) {
+			manualPaused = true;
 		}
-		else if (debounceTrigger < 5) {
-			debounceTrigger++;
-			paused = false;
+		else {
+			manualPaused = false;
 		}
 
-		if (!paused) {
+		if (!(paused || manualPaused)) {
 			angle += sin(frametime* bi_star_facts.y);
 		}
         mat4 Ry = rotate(mat4(1), angle, vec3(0, 1, 0));
@@ -1144,14 +1153,30 @@ public:
 		// TODO: find actual values for proper translation to "ingame hmd space"
 		// pos = glm::vec3(1.5, -0., -0.8);
 
-		if (vrapp->up) { cam_.w = 1; }
-		else if (!currentKeyDown) { cam_.w = 0; }
-		if (vrapp->down) { cam_.s = 1; }
-		else if (!currentKeyDown) { cam_.s = 0; }
-		if (vrapp->left) { cam_.a = 1; }
-		else if (!currentKeyDown) { cam_.a = 0; }
-		if (vrapp->right) { cam_.d = 1; }
-		else if (!currentKeyDown) { cam_.d = 0; }
+		// Moving left/right with controller
+
+		if (!vrapp->trigger) {
+			if (vrapp->up) { cam_.w = 1; }
+			else if (!currentKeyDown) { cam_.w = 0; }
+			if (vrapp->down) { cam_.s = 1; }
+			else if (!currentKeyDown) { cam_.s = 0; }
+			if (vrapp->left) { cam_.left = 1; }
+			else if (!currentKeyDown) { cam_.left = 0; }
+			if (vrapp->right) { cam_.right = 1; }
+			else if (!currentKeyDown) { cam_.right = 0; }
+		} else if (vrapp->trigger) {
+			// Changing bistar values with controller
+			static float advValSpeed = 0.01;
+			static float advValDist = 0.005;
+			if (vrapp->up) { bi_star_facts.x += advValDist; }
+			else if (vrapp->down) { bi_star_facts.x -= advValDist; }
+			else if (vrapp->left) { bi_star_facts.y -= advValSpeed; }
+			else if (vrapp->right) { bi_star_facts.y += advValSpeed; }
+		}
+
+		// Prevent negative values, prevent confusion..
+		if (bi_star_facts.y < 0) bi_star_facts.y = 0;
+		if (bi_star_facts.x < 0) bi_star_facts.x = 0;
 
 		if (!manualMode) {
 			// controller_pos_right -= ((cam_.pos_) + vec3(0.2f, 1.2f, 0.f));// * 1.f/controllerScale;

@@ -21,7 +21,7 @@ vec2 rotateUV(vec2 uv, vec2 pivot, float rotation) {
     ) + pivot;
 }
 float PI = 3.14159265359;
-float maxRot = (PI * 0.8);
+float maxRot = (PI * 1.5);
 void main()
 {
 	color = texture2D(tex_gauge, TexCoord);

@@ -123,6 +123,8 @@ private:
 	vr::TrackedDevicePose_t submitFramesOpenGL(int leftEyeTex, int rightEyeTex, bool linear = false);
 	void handleVRError(vr::EVRInitError err);
 	void initVR();
+	float buttonThresholdDir = 0.5f;
+	float buttonThresholdTrig = 0.8f;
 public:
 	vec3 position = vec3(0, 0, 0);
 	float eyeconvergence = 0.02;		// convergence point // Oculus 0.03
@@ -164,6 +166,6 @@ public:
 	bool GetDigitalActionState(vr::VRActionHandle_t action, vr::VRInputValueHandle_t* pDevicePath = nullptr);
 	bool GetDigitalActionRisingEdge(vr::VRActionHandle_t action, vr::VRInputValueHandle_t* pDevicePath = nullptr);
 
-	int up = 0, down = 0, left = 0, right = 0, trigger = 0;
+	int up = 0, down = 0, left = 0, right = 0, trigger = 0, menu = 0;
 };
 

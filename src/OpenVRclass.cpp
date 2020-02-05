@@ -244,29 +244,29 @@ void OpenVRApplication::HandleVRInput(const vr::VREvent_t& event) {
 	}
 }
 
+// TODO: needs cleanup.. spaghetti
 void OpenVRApplication::HandleVRButtonEvent(vr::VREvent_t event) {
 	char* buf = new char[100];
 	if (event.eventType >= 200 && event.eventType <= 203) {
 		if (event.data.controller.button == vr::k_EButton_A && event.eventType == vr::VREvent_ButtonPress)
 			cout << "handling A/X button press" << endl; // TODO: display stuff here probably
 		else if (event.data.controller.button == vr::k_EButton_SteamVR_Touchpad) {
-			cout << "k_EButton_SteamVR_Touchpad pressed!" << event.eventType << " - " << event.trackedDeviceIndex << endl;
 			if (event.eventType == vr::VREvent_ButtonPress) {
 				vec3 tpadVals = GetAnalogValues(event.trackedDeviceIndex);
 
-				if (tpadVals[0] < -0.7f) {
+				if (tpadVals[0] < -buttonThresholdDir) {
 					cout << " LEFT " << endl;
 					left = 1;
 				}
-				if (tpadVals[0] > 0.7f) {
+				if (tpadVals[0] > buttonThresholdDir) {
 					cout << " RIGHT " << endl;
 					right = 1;
 				}
-				if (tpadVals[1] < -0.7f) {
+				if (tpadVals[1] < -buttonThresholdDir) {
 					cout << " DOWN " << endl;
 					down = 1;
 				}
-				if (tpadVals[1] > 0.7f) {
+				if (tpadVals[1] > buttonThresholdDir) {
 					cout << " UP " << endl;
 					up = 1;
 				}
@@ -275,6 +275,29 @@ void OpenVRApplication::HandleVRButtonEvent(vr::VREvent_t event) {
 			else if (event.eventType == vr::VREvent_ButtonUnpress)
 				up = down = left = right = 0;
 
+		}
+		else if (event.data.controller.button == vr::k_EButton_Axis1 ) {
+			if (event.eventType == vr::VREvent_ButtonPress) {
+				vec3 tpadVals = GetAnalogValues(event.trackedDeviceIndex);
+
+				cout << " TRIGGER " << tpadVals[2] << endl;
+				trigger = 1;
+			}
+			else if (event.eventType == vr::VREvent_ButtonUnpress) {
+				trigger = 0;
+			}
+		}
+		else if (event.data.controller.button == vr::k_EButton_ApplicationMenu) {
+			if (event.eventType == vr::VREvent_ButtonPress) {
+				cout << " MENU " << endl;
+				menu = 1;
+			}
+			else if (event.eventType == vr::VREvent_ButtonUnpress) {
+				menu = 0;
+			}
+		}
+		else {
+			cout << "other button interacted! " <<  event.eventType << " - " << event.data.controller.button << endl;
 		}
 	}
 	else {
@@ -426,6 +449,9 @@ OpenVRApplication::OpenVRApplication()
 	hmd->GetRecommendedRenderTargetSize(&w, &h);
 	rtWidth = w;
 	rtHeight = h;
+	// TODO: !!!!!!!!!!!!!!!!!!!!!!REMOVE!!!!!!!!!!!!!!!!!!!!!!
+	rtWidth = 1280;
+	rtHeight = 720;
 	std::cout << "Initialized HMD with suggested render target size : " << rtWidth << "x" << rtHeight << std::endl;
 }
 
