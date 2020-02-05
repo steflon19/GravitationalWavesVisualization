@@ -6,7 +6,7 @@ uniform mat4 V;
 uniform mat4 P;
 
 out vec2 TexCoord;
-
+// basecode from http://ogldev.atspace.co.uk/www/tutorial27/tutorial27.html
 void main() {
 	float size = 0.1f;
 

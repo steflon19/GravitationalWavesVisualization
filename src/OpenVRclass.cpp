@@ -173,15 +173,15 @@ void OpenVRApplication::SetupControllers() {
 	}
 }
 
-vec2 OpenVRApplication::GetTouchpadPositionsById(int id) {
+vec3 OpenVRApplication::GetAnalogValues(int id) {
 	for (int i = 0; i < 2; i++) {
 		ControllerData* pC = &(controllers[i]);
 		if (pC->deviceId == id) {
 			// cout << "getting stuff for " << id << " x " << pC->padX << " y " << pC->padY << endl;
-			return vec2(pC->padX, pC->padY);
+			return vec3(pC->padX, pC->padY, pC->trigVal);
 		}
 	}
-	return vec2(0);
+	return vec3(0);
 }
 
 void OpenVRApplication::PrintTrackedDevices() {
@@ -252,7 +252,7 @@ void OpenVRApplication::HandleVRButtonEvent(vr::VREvent_t event) {
 		else if (event.data.controller.button == vr::k_EButton_SteamVR_Touchpad) {
 			cout << "k_EButton_SteamVR_Touchpad pressed!" << event.eventType << " - " << event.trackedDeviceIndex << endl;
 			if (event.eventType == vr::VREvent_ButtonPress) {
-				vec2 tpadVals = GetTouchpadPositionsById(event.trackedDeviceIndex);
+				vec3 tpadVals = GetAnalogValues(event.trackedDeviceIndex);
 
 				if (tpadVals[0] < -0.7f) {
 					cout << " LEFT " << endl;
