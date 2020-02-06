@@ -450,8 +450,8 @@ OpenVRApplication::OpenVRApplication()
 	rtWidth = w;
 	rtHeight = h;
 	// TODO: !!!!!!!!!!!!!!!!!!!!!!REMOVE!!!!!!!!!!!!!!!!!!!!!!
-	rtWidth = 1280;
-	rtHeight = 720;
+	/*rtWidth = 1280;
+	rtHeight = 720;*/
 	std::cout << "Initialized HMD with suggested render target size : " << rtWidth << "x" << rtHeight << std::endl;
 }
 
