@@ -16,9 +16,9 @@ out vec3 scolor;
 uniform sampler2D tex2;
 uniform vec2 bi_star_facts;
 
-vec4 getAttractedPosition() {
+vec4 getAttractedPosition(vec4 apos) {
     
-    vec4 pos = M * vec4(vertPos,1);
+    vec4 pos = apos; //M * vec4(vertPos,1);
     vec3 dir = SpherePos - pos.xyz;
     float d = length(dir);
 	float max_d = d - earthScale;
@@ -56,15 +56,17 @@ vec4 getAttractedPositionBinary(vec4 gpos, vec3 bpos) {
     vec4 pos = M * gpos;
     vec3 dir = bpos - pos.xyz;
     float d = length(dir);
-	float max_d = d - 0.02f;
-	//if (max_d < 0) return pos;
+	float scale = 0.02;
+	float max_d = d - scale;
+	if (max_d < 0) return pos;
     
+    // float a = 0.0001;
     float a = 0.0001;
     float force = (a) / pow(d,2);
-    force = pow(force, 5.5/10.);
-	//if (force > max_d) force = max_d;
-    //pos.xyz = pos.xyz * normalize(dir) * force; // 
-	pos.xyz = clamp(pos.xyz + normalize(dir) * force, pos.xyz, (bpos-normalize(dir)*(0.02)));
+    force = pow(force, 5.5/11.);
+	if (force > max_d) force = max_d;
+    pos.xyz = pos.xyz + normalize(dir) * force; 
+	//pos.xyz = clamp(pos.xyz + normalize(dir) * force, pos.xyz, (bpos-normalize(dir)*scale));
     
     return pos;
 }
@@ -72,13 +74,11 @@ vec4 getAttractedPositionBinary(vec4 gpos, vec3 bpos) {
 void main()
 {
     //vec3 pulledPos = vertPos * distance(vertPos, SpherePos);
-    vec4 attractedPosition = getAttractedPosition();
-    attractedPosition = getAttractedPositionMoon(attractedPosition);
-	// attractedPosition = getAttractedPositionBinary(attractedPosition, BPosOne);
-	// attractedPosition = getAttractedPositionBinary(attractedPosition, BPosTwo);
-	vec3 removeWarning = BPosOne + BPosTwo;
-	attractedPosition += vec4(removeWarning, 1);
-	attractedPosition -= vec4(removeWarning, 1);
+    vec4 attractedPosition = M * vec4(vertPos, 1);
+
+	//vec3 removeWarning = BPosOne + BPosTwo;
+	//attractedPosition += vec4(removeWarning, 1);
+	//attractedPosition -= vec4(removeWarning, 1);
     vec4 tpos =  Ry * M * vec4(vertPos, 1.0);
     vertex_pos = (M * vec4(vertPos, 1.0)).xyz; // Rotate this by 90° ??
     camvertex_pos = vec3(V * attractedPosition);
@@ -106,6 +106,14 @@ void main()
     vec3 v = normalize(-vertPos);
     v *= c * gw_force * f;
     attractedPosition += vec4(v, 0.);
+	
+	attractedPosition = getAttractedPosition(attractedPosition);
+    attractedPosition = getAttractedPositionMoon(attractedPosition);
+	attractedPosition = getAttractedPositionBinary(attractedPosition, BPosOne);
+	attractedPosition = getAttractedPositionBinary(attractedPosition, BPosTwo);
+
+	if (attractedPosition.z > 0) attractedPosition.z = 0;
+	if (attractedPosition.x > 0) attractedPosition.x = 0;
    //attractedPosition.xz *=f;
     gl_Position = P * V * attractedPosition;
     scolor = spiralcolor.rgb;
