@@ -18,7 +18,6 @@ void main()
 	vertex_normal = vec4(M * vec4(vertNor,0.0)).xyz;
     frag_pos = vec4(M * vec4(newPos)).xyz;
     
-    
     vec4 tpos =  M *  vec4(newPos.xyz, 1.0);
 	vertex_pos = tpos.xyz;
 	gl_Position = P * V * tpos;

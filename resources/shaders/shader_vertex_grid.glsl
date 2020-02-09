@@ -73,12 +73,8 @@ vec4 getAttractedPositionBinary(vec4 gpos, vec3 bpos) {
 
 void main()
 {
-    //vec3 pulledPos = vertPos * distance(vertPos, SpherePos);
     vec4 attractedPosition = M * vec4(vertPos, 1);
 
-	//vec3 removeWarning = BPosOne + BPosTwo;
-	//attractedPosition += vec4(removeWarning, 1);
-	//attractedPosition -= vec4(removeWarning, 1);
     vec4 tpos =  Ry * M * vec4(vertPos, 1.0);
     vertex_pos = (M * vec4(vertPos, 1.0)).xyz; // Rotate this by 90° ??
     camvertex_pos = vec3(V * attractedPosition);

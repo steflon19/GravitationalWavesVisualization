@@ -129,6 +129,18 @@ private:
 	
 	bool currentKeyDown = false;
 
+	int currentTask = 0;
+	int explanationText = 0;
+
+	string taskFirstText = "Find the area that is most affected";
+	string taskFirstInstructionOne = "Move around with the touchpad";
+	string taskFirstInstructionTwo = "Pause by holding the Menu button above";
+	string taskSecondText = "Increase or decrease the distance of the stars";
+	string taskSecondInstruction = "Trigger + Up or Down changes the distance";
+	string taskThirdText = "Increase or decrease the speed of the stars";
+	string taskThirdInstruction = "Trigger + Left or Right changes the distance";
+	string taskFourthText = "What happens if the stars collide and merge?";
+
 public:
     WindowManager * windowManager = nullptr;
 
@@ -272,6 +284,11 @@ public:
 
 		if (key == GLFW_KEY_P && action == GLFW_RELEASE) { paused = !paused; cout << "Sim " << (paused ? "Paused!" : "Resumed!") << endl; }
 		if (key == GLFW_KEY_M && action == GLFW_RELEASE) { manualMode = !manualMode;  cout << "Simulation Mode: " << (manualMode ? "Manual." : "VR.") << endl; }
+
+		if (key == GLFW_KEY_RIGHT_CONTROL && action == GLFW_RELEASE) { currentTask++; if (currentTask > 8) currentTask = 0;  cout << "Current Task on: " << currentTask << endl; }
+		if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_RELEASE) { currentTask--; if (currentTask < 0) currentTask = 8;  cout << "Current Task on: " << currentTask << endl; }
+
+		if (key == GLFW_KEY_RIGHT_SHIFT && action == GLFW_RELEASE) { explanationText++; if (explanationText > 3) explanationText = 0; }
     }
 
     // callback for the mouse when clicked move the triangle when helper functions
@@ -333,8 +350,8 @@ public:
         // generating the grid
         std::vector<vec3> grid_x, grid_y, grid_z;
         float step = 0.125/2;
-        float gridSize = 2.; // 4
-        int numPoints = 5; // 20
+        float gridSize = 4.; // 4
+        int numPoints = 10; // 20
         float innerStep = step / (float)numPoints;
         // the grid is rendered as LINE_STRIP, therefore we always set pairs of points (a->b, b->c, etc..)
         for (float z = -gridSize; z <= 0; z += step)
@@ -1251,9 +1268,10 @@ public:
 		vec4 screenpos = P * V * vec4(handPosRightVecScaled + handTextOffset, 1);
 		screenpos.x /= screenpos.w;
 		screenpos.y /= screenpos.w;
-		font->draw(screenpos.x, screenpos.y, 0.3f, amplString, 1.f, 1.f, 1.f);
-		// font->draw(screenpos.x, screenpos.y - 0.05f, 0.3f, (string)"Max: " + maxAmplString, 1.f, 1.f, 1.f);
-		// font->draw(screenpos.x, screenpos.y - 0.15f, 0.3f, (string)"Min: " + minAmplString, 1.f, 1.f, 1.f);
+		font->draw(screenpos.x, screenpos.y, 0.3f, "Magnitude: " + amplString, 1.f, 1.f, 1.f);
+		// Render binary star facts
+		font->draw(screenpos.x, screenpos.y - 0.07f, 0.3f, "Speed: " + RoundToString(bi_star_facts.y, 2), 1.f, 1.f, 1.f);
+		font->draw(screenpos.x, screenpos.y - 0.12f, 0.3f, "Distance: " + RoundToString(bi_star_facts.x, 2), 1.f, 1.f, 1.f);
 		font->draw();
 
 		//////// Gauge Rendering
@@ -1287,7 +1305,66 @@ public:
 			glDrawArrays(GL_TRIANGLES, 0, 18);
 			prog_debug->unbind();
 		}
-        
+
+		//// Rendering Explanation text
+		if (explanationText > 0) {
+			switch (explanationText) {
+			case 1:
+				font->draw(-0.3f, 0.0f, 0.2f, "The blue grid represents spacetime", .8f, .8f, .8f);
+				font->draw(-0.4f, -0.06f, 0.2f, "You will see it being affected by gravitational waves", .8f, .8f, .8f);
+				break;
+			case 2:
+				font->draw(-0.35f, -0.0f, 0.2f, "Earth and moon show their gravity in the grid", .8f, .8f, .8f);
+				font->draw(-0.35f, -0.06f, 0.2f, "They are also gonna be affected by the waves", .8f, .8f, .8f);
+				break;
+			case 3:
+				font->draw(-0.35f, -0.0f, 0.2f, "On your right you see the rotating binary stars", .8f, .8f, .8f);
+				break;
+			default:
+				font->draw(-.3f, 0.f, 0.4f, "waiting for explanation..", .8f, .8f, .8f);
+			}
+			font->draw();
+		}
+		//// End Rendering Task text        
+		//// Rendering Task text
+		if (currentTask > 0) {
+			switch (currentTask) {
+			case 1:
+				font->draw(-0.3f, 0.0f, 0.1f, taskFirstText, .8f, .8f, .8f);
+				font->draw(-0.3f, -0.07f, 0.1f, taskFirstInstructionOne, .8f, .8f, .8f);
+				font->draw(-0.3f, -0.14f, 0.1f, taskFirstInstructionTwo, .8f, .8f, .8f);
+				break;
+			case 2:
+				font->draw(-0.3f, -0.35f, 0.1f, taskFirstText, .6f, .6f, .6f);
+				break;
+			case 3:
+				font->draw(-0.3f, 0.0f, 0.1f, taskSecondText, .8f, .8f, .8f);
+				font->draw(-0.3f, -0.07f, 0.1f, taskSecondInstruction, .8f, .8f, .8f);
+				break;
+			case 4:
+				font->draw(-0.3f, -0.35f, 0.1f, taskSecondText, .6f, .6f, .6f);
+				break;
+			case 5:
+				font->draw(-0.3f, 0.0f, 0.1f, taskThirdText, .8f, .8f, .8f);
+				font->draw(-0.3f, -0.07f, 0.1f, taskThirdInstruction, .8f, .8f, .8f);
+				break;
+			case 6:
+				font->draw(-0.3f, -0.35f, 0.1f, taskThirdText, .6f, .6f, .6f);
+				break;
+			case 7:
+				font->draw(-0.3f, 0.0f, 0.1f, taskFourthText, .8f, .8f, .8f);
+				font->draw(-0.3f, -0.07f, 0.1f, taskSecondInstruction, .8f, .8f, .8f);
+				break;
+			case 8:
+				font->draw(-0.3f, -0.35f, 0.1f, taskFourthText, .6f, .6f, .6f);
+				break;
+			default:
+				font->draw(-.3f, 0.f, 0.4f, "waiting for task..", .8f, .8f, .8f);
+			}
+			font->draw();
+		}
+		//// End Rendering Task text
+
         // fix this, its not rendering anything??
 //        prog_skybox->bind();
 //        M =  glm::mat4(1);

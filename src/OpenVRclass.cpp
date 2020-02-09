@@ -297,7 +297,7 @@ void OpenVRApplication::HandleVRButtonEvent(vr::VREvent_t event) {
 			}
 		}
 		else {
-			cout << "other button interacted! " <<  event.eventType << " - " << event.data.controller.button << endl;
+			// cout << "other button interacted! " <<  event.eventType << " - " << event.data.controller.button << endl;
 		}
 	}
 	else {

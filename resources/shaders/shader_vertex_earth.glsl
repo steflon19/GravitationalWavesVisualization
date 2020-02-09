@@ -25,7 +25,6 @@ void main()
     vec4 tpos =  Ry * M * vec4(newPos);
 	vertex_pos = newPos.xyz;
     
-    // fake gw from texture
      tpos/=5*bi_star_facts.x;
      tpos.xz += vec2(1,1);
      //tpos/=1.0;
