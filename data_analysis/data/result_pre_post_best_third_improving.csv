@@ -1,0 +1,9 @@
+pre_sum,post_sum,pre_SD,post_SD
+0.0444444,1,0.0831479,0
+
+
+blank,Q1_wtype_pre,Q1_wtype_post,Q2_mag_v_rad_pre,Q2_mag_v_rad_post,Q3_merge_pre,Q3_merge_post,Q4_mag_v_rotspeed_pre,Q4_mag_v_rotspeed_post,Q5_mostaff_pre,Q5_mostaff_post
+mean,0,1,0,1,0,1,0,1,0.222222,1
+SD,0,0,0,0,0,0,0,0,0.41574,0
+
+
