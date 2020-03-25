@@ -26,7 +26,7 @@ using namespace glm;
 #ifndef BYTE
 #define BYTE bitset<8>
 #endif
-#define MSAAFACT 2
+#define MSAAFACT 4
 
 #define SSBO_SIZE 512
 
@@ -758,7 +758,7 @@ public:
 		setResourceDirectory(resDir);
         left_ =  right_ = forward_ = backward_ = 0;
 		earth_pos_ = vec3(-1.5f, -0.05f, 0.f);
-		cam_start_pos_ = vec3(1.5, 1.7f, -0.8);
+		cam_start_pos_ = vec3(1.5, .0f, -0.8);
 		cam_ = Camera(cam_start_pos_, vec3(0));
 		manual_hand_pos_left_ = vec3(-2.f, 0.f, 0.2f);
 		manual_hand_pos_right_ = vec3(-1.f, 0.f, 0.2f);
