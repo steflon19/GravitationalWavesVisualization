@@ -1,0 +1,23 @@
+﻿  glad.c
+  fonts.cpp
+c:\users\stefan\code\gravitationalwavesvisualization\src\fonts.h(44): warning C4305: 'initializing': truncation from 'double' to 'float'
+c:\users\stefan\code\gravitationalwavesvisualization\src\fonts.cpp(49): warning C4305: 'initializing': truncation from 'double' to 'float'
+c:\users\stefan\code\gravitationalwavesvisualization\src\fonts.cpp(157): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+c:\users\stefan\code\gravitationalwavesvisualization\src\fonts.cpp(190): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\stefan\code\gravitationalwavesvisualization\src\fonts.cpp(196): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\users\stefan\code\gravitationalwavesvisualization\src\fonts.cpp(197): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+  GLSL.cpp
+  main.cpp
+c:\users\stefan\code\gravitationalwavesvisualization\src\openvrclass.h(67): warning C4068: unknown pragma
+c:\users\stefan\code\gravitationalwavesvisualization\src\openvrclass.h(68): fatal error C1083: Cannot open include file: 'openvr.h': No such file or directory
+  MatrixStack.cpp
+  OpenVRclass.cpp
+c:\users\stefan\code\gravitationalwavesvisualization\src\openvrclass.h(67): warning C4068: unknown pragma
+c:\users\stefan\code\gravitationalwavesvisualization\src\openvrclass.h(68): fatal error C1083: Cannot open include file: 'openvr.h': No such file or directory
+  Program.cpp
+  Shape.cpp
+c:\users\stefan\code\gravitationalwavesvisualization\src\shape.cpp(34): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+c:\users\stefan\code\gravitationalwavesvisualization\src\shape.cpp(72): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+  WindowManager.cpp
+c:\users\stefan\code\gravitationalwavesvisualization\src\windowmanager.cpp(46): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+c:\users\stefan\code\gravitationalwavesvisualization\src\windowmanager.cpp(47): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
